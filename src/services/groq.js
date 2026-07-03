@@ -1,0 +1,212 @@
+// src/services/groq.js
+// Uses Groq's OpenAI-compatible API with Llama 3.3 70B Versatile
+
+const GROQ_URL   = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
+
+const SYSTEM_CONTEXT = `You are PisoWise AI — a warm, expert financial coach specifically for low-income Filipino families.
+Your role: Help Filipinos manage their piso wisely, save for dreams, and break free from debt.
+
+Key guidelines:
+- Always use Philippine Peso (₱) for amounts
+- Reference Filipino context: sari-sari store profits, OFW remittances, paluwagan, utang sa tindahan, 13th month pay, SSS, PhilHealth, Pag-IBIG
+- Speak in a friendly, encouraging tone — like a trusted kuya/ate giving money advice
+- Use simple Filipino-friendly language (can mix a bit of Taglish when it feels natural)
+- Consider common Filipino income sources: daily wage, online jobs, small business, farming, driving for hire
+- Always give practical, actionable advice for tight budgets
+- Reference the 50-30-20 rule adapted for Filipino context (necessities-savings-wants)
+- Mention government programs when relevant: 4Ps, TUPAD, CAMP, Pag-IBIG loans
+- Format responses clearly with bullet points and peso amounts
+- Be empathetic — many families struggle and need encouragement, not judgment`;
+
+/**
+ * Core API call to Groq
+ */
+const callGroq = async (messages, maxTokens = 1024) => {
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+  if (!apiKey) throw new Error('VITE_GROQ_API_KEY is not configured.');
+
+  const response = await fetch(GROQ_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type':  'application/json',
+    },
+    body: JSON.stringify({
+      model:       GROQ_MODEL,
+      messages:    [{ role: 'system', content: SYSTEM_CONTEXT }, ...messages],
+      max_tokens:  maxTokens,
+      temperature: 0.7,
+      top_p:       0.9,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Groq API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content?.trim() ?? '';
+};
+
+// ─── Personalized Budget Generator ───────────────────────────────────────
+export const generateBudget = async ({ monthlyIncome, expenses, familySize, goals }) => {
+  const prompt = `Generate a detailed monthly budget plan for a Filipino family with:
+- Monthly Income: ₱${monthlyIncome.toLocaleString()}
+- Family Size: ${familySize} members
+- Current Monthly Expenses: ${JSON.stringify(expenses)}
+- Financial Goals: ${goals || 'Save and reduce debt'}
+
+Provide:
+1. Recommended budget allocation per category (with ₱ amounts)
+2. Specific savings target
+3. Areas to cut spending
+4. One practical money-saving tip from Filipino culture
+5. Expected progress in 3 months
+
+Keep it realistic for a Filipino family income level.`;
+
+  return callGroq([{ role: 'user', content: prompt }], 1200);
+};
+
+// ─── Savings Strategy ────────────────────────────────────────────────────
+export const generateSavingsStrategy = async ({ goalName, targetAmount, currentSavings, monthlyIncome, monthlyExpenses }) => {
+  const available = monthlyIncome - monthlyExpenses;
+  const prompt = `Create a practical savings strategy for a Filipino family:
+- Savings Goal: ${goalName}
+- Target Amount: ₱${targetAmount.toLocaleString()}
+- Currently Saved: ₱${currentSavings.toLocaleString()}
+- Amount Remaining: ₱${(targetAmount - currentSavings).toLocaleString()}
+- Monthly Income: ₱${monthlyIncome.toLocaleString()}
+- Monthly Expenses: ₱${monthlyExpenses.toLocaleString()}
+- Available for Savings: ₱${available.toLocaleString()}/month
+
+Provide:
+1. How many months to reach the goal
+2. Weekly savings target
+3. Three creative ways to save more (Filipino context)
+4. What to do if money runs short (emergency plan)
+5. Milestone rewards to stay motivated`;
+
+  return callGroq([{ role: 'user', content: prompt }], 1000);
+};
+
+// ─── Debt Repayment Plan ────────────────────────────────────────────────
+export const generateDebtPlan = async ({ debts, monthlyIncome, monthlyExpenses }) => {
+  const debtSummary = debts.map(d =>
+    `• ${d.creditorName}: ₱${d.remainingAmount.toLocaleString()} remaining (${d.interestRate || 0}% interest)`
+  ).join('\n');
+
+  const prompt = `Create a debt repayment plan for a Filipino family:
+Monthly Income: ₱${monthlyIncome.toLocaleString()}
+Monthly Expenses: ₱${monthlyExpenses.toLocaleString()}
+Available for Debt: ₱${(monthlyIncome - monthlyExpenses).toLocaleString()}/month
+
+Debts:
+${debtSummary}
+
+Provide:
+1. Recommended repayment order (avalanche or snowball method — explain which fits best)
+2. How much to pay per debt monthly
+3. Expected debt-free date
+4. Tips to avoid new debt (Filipino context: saying no to utang)
+5. What to do with freed-up money after a debt is paid off`;
+
+  return callGroq([{ role: 'user', content: prompt }], 1000);
+};
+
+// ─── Emergency Fund Advice ───────────────────────────────────────────────
+export const generateEmergencyFundAdvice = async ({ monthlyExpenses, currentSavings, familySize }) => {
+  const target = monthlyExpenses * 3;
+  const prompt = `Give emergency fund advice for a Filipino family of ${familySize}:
+- Monthly Expenses: ₱${monthlyExpenses.toLocaleString()}
+- Recommended Emergency Fund (3 months): ₱${target.toLocaleString()}
+- Current Savings: ₱${currentSavings.toLocaleString()}
+- Gap to Fill: ₱${Math.max(0, target - currentSavings).toLocaleString()}
+
+Explain:
+1. Why an emergency fund matters (use relatable Filipino scenarios: typhoons, medical emergencies, job loss)
+2. Where to keep emergency funds in the Philippines (CIMB, Maya, GCash GSave, Pag-IBIG MP2)
+3. Step-by-step plan to build it from scratch
+4. What counts as a real emergency
+5. How to rebuild after using it`;
+
+  return callGroq([{ role: 'user', content: prompt }], 900);
+};
+
+// ─── Weekly Spending Insights ────────────────────────────────────────────
+export const generateWeeklyInsights = async ({ transactions, monthlyBudget, monthlyIncome }) => {
+  const weekTotal   = transactions.reduce((sum, t) => t.type === 'expense' ? sum + t.amount : sum, 0);
+  const incomeTotal = transactions.reduce((sum, t) => t.type === 'income'  ? sum + t.amount : sum, 0);
+
+  const categories = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((acc, t) => {
+      acc[t.category] = (acc[t.category] || 0) + t.amount;
+      return acc;
+    }, {});
+
+  const prompt = `Analyze this Filipino family's weekly finances and give insights:
+Weekly Expenses: ₱${weekTotal.toLocaleString()}
+Weekly Income: ₱${incomeTotal.toLocaleString()}
+Net: ₱${(incomeTotal - weekTotal).toLocaleString()}
+Monthly Budget: ₱${monthlyBudget?.toLocaleString() || 'Not set'}
+Spending by Category: ${JSON.stringify(categories)}
+
+Provide:
+1. Overall financial health assessment (2-3 sentences, encouraging)
+2. Top spending category analysis — is it too high?
+3. One specific thing they did well this week
+4. One specific thing to improve next week
+5. Quick money tip for the coming week
+Keep it under 300 words, conversational, like a trusted financial friend.`;
+
+  return callGroq([{ role: 'user', content: prompt }], 600);
+};
+
+// ─── Financial Coaching Chat ─────────────────────────────────────────────
+export const chatWithCoach = async (conversationHistory, userMessage, userContext) => {
+  const contextNote = userContext
+    ? `\n[User context: Monthly income ₱${userContext.monthlyIncome?.toLocaleString() || 'unknown'}, has ${userContext.savingsCount || 0} savings goals, ${userContext.debtCount || 0} active debts]`
+    : '';
+
+  const messages = [
+    ...conversationHistory.slice(-8), // Keep last 8 messages for context window efficiency
+    {
+      role: 'user',
+      content: userMessage + contextNote,
+    },
+  ];
+
+  return callGroq(messages, 800);
+};
+
+// ─── Financial Health Score Explanation ─────────────────────────────────
+export const explainHealthScore = async ({ score, income, expenses, savings, debts }) => {
+  const prompt = `A Filipino family has a Financial Health Score of ${score}/100.
+Income: ₱${income.toLocaleString()}/month
+Expenses: ₱${expenses.toLocaleString()}/month
+Total Savings: ₱${savings.toLocaleString()}
+Total Debt: ₱${debts.toLocaleString()}
+
+Explain in 3-4 sentences:
+1. What the score means for them
+2. The main reason it's at this level
+3. The single most impactful action to improve it this month`;
+
+  return callGroq([{ role: 'user', content: prompt }], 400);
+};
+
+// ─── Lesson Q&A ─────────────────────────────────────────────────────────
+export const answerFinancialQuestion = async (question, lessonTopic) => {
+  const prompt = `A Filipino learning about "${lessonTopic}" asks: "${question}"
+
+Answer in a beginner-friendly way using simple language and Filipino examples.
+Use specific peso amounts when helpful.
+Keep the answer under 200 words.`;
+
+  return callGroq([{ role: 'user', content: prompt }], 500);
+};
+
+export default { generateBudget, generateSavingsStrategy, generateDebtPlan, generateEmergencyFundAdvice, generateWeeklyInsights, chatWithCoach, explainHealthScore, answerFinancialQuestion };

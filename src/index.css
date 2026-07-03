@@ -1,0 +1,332 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Google Fonts loaded in index.html ─── */
+
+/* ─── Base Reset ──────────────────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: #060D1F;
+    color: #ffffff;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Safe area for notched phones / Android nav bar */
+  .safe-top    { padding-top:    env(safe-area-inset-top,    0px); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .safe-left   { padding-left:   env(safe-area-inset-left,   0px); }
+  .safe-right  { padding-right:  env(safe-area-inset-right,  0px); }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Syne', system-ui, sans-serif;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  input, textarea, select {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+
+  ::selection { background: rgba(247,193,58,0.3); }
+}
+
+/* ─── Design Tokens / Utility Classes ────────────────────────────────────── */
+@layer components {
+
+  /* ── Background ────────── */
+  .bg-pw {
+    background: linear-gradient(160deg, #060D1F 0%, #0C1628 50%, #0A1320 100%);
+    min-height: 100dvh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Subtle Philippine Sun background watermark */
+  .bg-pw::before {
+    content: '';
+    position: fixed;
+    top: -20%;
+    right: -20%;
+    width: 60vw;
+    height: 60vw;
+    max-width: 500px;
+    max-height: 500px;
+    background: radial-gradient(circle, rgba(247,193,58,0.04) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    animation: pulse-gold 8s ease-in-out infinite;
+  }
+
+  /* ── Glass Card ────────── */
+  .glass {
+    background:      rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border:          1px solid rgba(255, 255, 255, 0.08);
+    border-radius:   20px;
+    box-shadow:      0 8px 32px rgba(0, 0, 0, 0.4),
+                     inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .glass-sm {
+    background:      rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border:          1px solid rgba(255, 255, 255, 0.07);
+    border-radius:   12px;
+  }
+
+  .glass-gold {
+    background:      rgba(247, 193, 58, 0.08);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border:          1px solid rgba(247, 193, 58, 0.2);
+    border-radius:   20px;
+  }
+
+  .glass-blue {
+    background:      rgba(59, 130, 246, 0.08);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border:          1px solid rgba(59, 130, 246, 0.2);
+    border-radius:   20px;
+  }
+
+  /* ── Buttons ─────────────────── */
+  .btn-primary {
+    @apply relative inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-semibold text-sm transition-all duration-200 select-none cursor-pointer;
+    background:  linear-gradient(135deg, #F7C13A 0%, #F59E0B 100%);
+    color:       #060D1F;
+    box-shadow:  0 4px 20px rgba(247,193,58,0.3);
+  }
+  .btn-primary:hover  { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(247,193,58,0.45); }
+  .btn-primary:active { transform: translateY(0);    box-shadow: 0 2px 12px rgba(247,193,58,0.3); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .btn-secondary {
+    @apply relative inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-semibold text-sm transition-all duration-200 select-none cursor-pointer text-white;
+    background:  rgba(255,255,255,0.06);
+    border:      1px solid rgba(255,255,255,0.10);
+    backdrop-filter: blur(12px);
+  }
+  .btn-secondary:hover  { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.18); }
+  .btn-secondary:active { background: rgba(255,255,255,0.06); }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-semibold text-sm transition-all duration-200 cursor-pointer text-white;
+    background: rgba(206,17,38,0.15);
+    border:     1px solid rgba(206,17,38,0.3);
+  }
+  .btn-danger:hover { background: rgba(206,17,38,0.25); }
+
+  /* ── Inputs ───────────────────── */
+  .input-glass {
+    @apply w-full px-4 py-3 rounded-2xl text-white text-sm outline-none transition-all duration-200;
+    background:   rgba(255,255,255,0.05);
+    border:       1px solid rgba(255,255,255,0.10);
+    backdrop-filter: blur(8px);
+  }
+  .input-glass::placeholder { color: rgba(255,255,255,0.35); }
+  .input-glass:focus {
+    border-color: rgba(247,193,58,0.5);
+    box-shadow:   0 0 0 3px rgba(247,193,58,0.08);
+    background:   rgba(255,255,255,0.07);
+  }
+
+  /* ── Bottom Nav ─────────────────── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background:      rgba(6, 13, 31, 0.85);
+    backdrop-filter: blur(28px) saturate(1.5);
+    -webkit-backdrop-filter: blur(28px) saturate(1.5);
+    border-top:      1px solid rgba(255,255,255,0.07);
+    box-shadow:      0 -8px 40px rgba(0,0,0,0.5);
+    padding-bottom:  env(safe-area-inset-bottom, 0px);
+  }
+
+  /* ── Labels ─────────────────────── */
+  .label-gold {
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold;
+    background:  rgba(247,193,58,0.15);
+    color:       #F7C13A;
+    border:      1px solid rgba(247,193,58,0.25);
+  }
+
+  .label-emerald {
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold;
+    background:  rgba(16,185,129,0.15);
+    color:       #10B981;
+    border:      1px solid rgba(16,185,129,0.25);
+  }
+
+  .label-rose {
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold;
+    background:  rgba(244,63,94,0.15);
+    color:       #F43F5E;
+    border:      1px solid rgba(244,63,94,0.25);
+  }
+
+  /* ── Progress bar ─── */
+  .progress-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* ── Shimmer (skeleton loading) ─── */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+    background: rgba(255,255,255,0.04);
+  }
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    animation: shimmer 1.8s linear infinite;
+  }
+
+  /* ── Page container ─── */
+  .page {
+    @apply relative flex flex-col min-h-dvh;
+    z-index: 1;
+  }
+
+  .page-content {
+    @apply flex-1 px-4 py-4 pb-28 overflow-y-auto;
+    max-width: 480px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* ── Section headings ─── */
+  .section-title {
+    @apply text-white font-display font-bold text-lg mb-3;
+  }
+
+  /* ── Divider ─── */
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+    margin: 1rem 0;
+  }
+
+  /* ── Number display ─── */
+  .peso-amount {
+    font-family: 'Space Mono', monospace;
+    letter-spacing: -0.02em;
+  }
+
+  /* ── Toast overrides ─── */
+  .toaster-wrapper { z-index: 9999 !important; }
+}
+
+/* ─── Philippine Sun Background Decorations ──────────────────────────────── */
+.sun-rays {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Scrollable Content Areas ──────────────────────────────────────────── */
+.scroll-hidden { scrollbar-width: none; }
+.scroll-hidden::-webkit-scrollbar { display: none; }
+
+/* ─── Card Shine Effect ─────────────────────────────────────────────────── */
+.card-shine {
+  position: relative;
+  overflow: hidden;
+}
+.card-shine::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255,255,255,0.12) 50%,
+    transparent 60%
+  );
+  transition: transform 0.5s ease;
+  transform: translateX(-100%) rotate(10deg);
+}
+.card-shine:hover::after {
+  transform: translateX(350%) rotate(10deg);
+}
+
+/* ─── Page Transition ────────────────────────────────────────────────────── */
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms ease, transform 300ms ease;
+}
+.page-exit {
+  opacity: 1;
+}
+.page-exit-active {
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+/* ─── Responsive Breakpoints ─────────────────────────────────────────────── */
+@media (min-width: 640px) {
+  .page-content {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+@media (min-width: 768px) {
+  /* On tablets/desktop, show sidebar instead of bottom nav */
+  .bottom-nav { display: none; }
+  .desktop-sidebar { display: flex !important; }
+  .page-content {
+    max-width: 100%;
+    margin-left: 240px;
+    padding: 24px 32px 32px;
+  }
+}

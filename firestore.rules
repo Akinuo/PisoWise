@@ -1,0 +1,171 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isValidAmount() {
+      return request.resource.data.amount is number 
+        && request.resource.data.amount > 0
+        && request.resource.data.amount <= 10000000;
+    }
+    
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    // ──────────────────────────────────────────────────────────────────
+    // USER PROFILES
+    // ──────────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read:   if isOwner(userId);
+      allow create: if isOwner(userId)
+        && hasRequiredFields(['email', 'displayName', 'createdAt'])
+        && request.resource.data.email == request.auth.token.email;
+      allow update: if isOwner(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['email', 'createdAt', 'uid']);
+      allow delete: if false; // Don't allow profile deletion
+    }
+    
+    // ──────────────────────────────────────────────────────────────────
+    // TRANSACTIONS (income + expenses)
+    // ──────────────────────────────────────────────────────────────────
+    match /transactions/{transactionId} {
+      allow read:   if isAuthenticated() 
+        && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && isValidAmount()
+        && request.resource.data.type in ['income', 'expense']
+        && hasRequiredFields(['userId', 'type', 'amount', 'category', 'date', 'createdAt']);
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && isValidAmount();
+      allow delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+    
+    // ──────────────────────────────────────────────────────────────────
+    // SAVINGS GOALS
+    // ──────────────────────────────────────────────────────────────────
+    match /savings/{savingId} {
+      allow read:   if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.targetAmount is number
+        && request.resource.data.targetAmount > 0
+        && hasRequiredFields(['userId', 'goalName', 'targetAmount', 'currentAmount', 'createdAt']);
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+    
+    // ──────────────────────────────────────────────────────────────────
+    // DEBTS
+    // ──────────────────────────────────────────────────────────────────
+    match /debts/{debtId} {
+      allow read:   if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.originalAmount is number
+        && request.resource.data.originalAmount > 0
+        && hasRequiredFields(['userId', 'creditorName', 'originalAmount', 'remainingAmount', 'createdAt']);
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+    
+    // ──────────────────────────────────────────────────────────────────
+    // CARD WALLET (last 4 digits only — NO full card numbers)
+    // ──────────────────────────────────────────────────────────────────
+    match /cards/{cardId} {
+      allow read:   if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.lastFour is string
+        && request.resource.data.lastFour.size() == 4
+        // Verify OTP was completed (verified flag set server-side / by rule)
+        && request.resource.data.get('verified', false) == true
+        // NEVER store full card number, CVV, or expiry
+        && !('fullNumber' in request.resource.data)
+        && !('cvv' in request.resource.data)
+        && !('expiryDate' in request.resource.data)
+        && hasRequiredFields(['userId', 'lastFour', 'cardType', 'nickname', 'colorScheme', 'createdAt', 'verified']);
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.lastFour == resource.data.lastFour
+        && !('fullNumber' in request.resource.data)
+        && !('cvv' in request.resource.data)
+        && !('expiryDate' in request.resource.data);
+      allow delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+    
+    // ──────────────────────────────────────────────────────────────────
+    // AI INSIGHTS
+    // ──────────────────────────────────────────────────────────────────
+    match /insights/{insightId} {
+      allow read:   if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && hasRequiredFields(['userId', 'content', 'type', 'generatedAt']);
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+    
+    // ──────────────────────────────────────────────────────────────────
+    // BUDGETS
+    // ──────────────────────────────────────────────────────────────────
+    match /budgets/{budgetId} {
+      allow read:   if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && hasRequiredFields(['userId', 'month', 'year', 'categories', 'totalIncome', 'createdAt']);
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+    
+    // ──────────────────────────────────────────────────────────────────
+    // OTP VERIFICATION TOKENS — stored at otpTokens/{userId}
+    // Direct path lookup — no composite index needed
+    // ──────────────────────────────────────────────────────────────────
+    match /otpTokens/{userId} {
+      // User can read and delete their own OTP token
+      allow read, delete: if isAuthenticated() && request.auth.uid == userId;
+      // User can create/overwrite their own OTP token (setDoc)
+      allow create, update: if isAuthenticated()
+        && request.auth.uid == userId
+        && request.resource.data.userId == userId
+        && request.resource.data.otp is string
+        && request.resource.data.otp.size() == 6;
+    }
+    
+    // Block all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

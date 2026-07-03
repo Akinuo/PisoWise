@@ -1,0 +1,18 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="32" height="32" rx="8" fill="#060D1F"/>
+  <!-- Philippine sun rays -->
+  <g transform="translate(16,16)">
+    <!-- 8 rays -->
+    <line x1="0" y1="-13" x2="0" y2="-7" stroke="#F7C13A" stroke-width="1.5" stroke-linecap="round" transform="rotate(0)"/>
+    <line x1="0" y1="-13" x2="0" y2="-7" stroke="#F7C13A" stroke-width="1.5" stroke-linecap="round" transform="rotate(45)"/>
+    <line x1="0" y1="-13" x2="0" y2="-7" stroke="#F7C13A" stroke-width="1.5" stroke-linecap="round" transform="rotate(90)"/>
+    <line x1="0" y1="-13" x2="0" y2="-7" stroke="#F7C13A" stroke-width="1.5" stroke-linecap="round" transform="rotate(135)"/>
+    <line x1="0" y1="-13" x2="0" y2="-7" stroke="#F7C13A" stroke-width="1.5" stroke-linecap="round" transform="rotate(180)"/>
+    <line x1="0" y1="-13" x2="0" y2="-7" stroke="#F7C13A" stroke-width="1.5" stroke-linecap="round" transform="rotate(225)"/>
+    <line x1="0" y1="-13" x2="0" y2="-7" stroke="#F7C13A" stroke-width="1.5" stroke-linecap="round" transform="rotate(270)"/>
+    <line x1="0" y1="-13" x2="0" y2="-7" stroke="#F7C13A" stroke-width="1.5" stroke-linecap="round" transform="rotate(315)"/>
+    <!-- Sun circle with ₱ -->
+    <circle cx="0" cy="0" r="6" fill="#F7C13A"/>
+    <text x="0" y="4" font-family="Arial" font-size="7" font-weight="bold" fill="#060D1F" text-anchor="middle">₱</text>
+  </g>
+</svg>
