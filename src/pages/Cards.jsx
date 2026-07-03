@@ -215,7 +215,18 @@ export default function Cards() {
 
   useEffect(() => {
     if (!user || cardsLoaded) return;
-    getCards(user.uid).then((c) => setCards(c)).catch(console.error);
+
+    const loadCards = async () => {
+      try {
+        const c = await getCards(user.uid);
+        setCards(c);
+      } catch (error) {
+        console.error('Failed to load cards:', error);
+        setCards([]);
+      }
+    };
+
+    loadCards();
   }, [user, cardsLoaded, setCards]);
 
   useEffect(() => {
@@ -223,10 +234,12 @@ export default function Cards() {
       setActiveCardIdx(0);
       return;
     }
-    if (activeCardIdx > cards.length - 1) setActiveCardIdx(cards.length - 1);
+    if (activeCardIdx >= cards.length) {
+      setActiveCardIdx(cards.length - 1);
+    }
   }, [cards.length, activeCardIdx]);
 
-  const activeCard = cards[activeCardIdx] || cards[0];
+  const activeCard = cards.length > 0 ? cards[activeCardIdx] || cards[0] : null;
   const activeType = useMemo(() => cardTypeFor(activeCard), [activeCard]);
   const activeScheme = useMemo(() => schemeFor(activeCard), [activeCard]);
   const primaryCard = cards.find((card) => card.isPrimary);
@@ -325,7 +338,7 @@ export default function Cards() {
       setEditCard(null);
       setFlipped(false);
     } catch (e) {
-      console.error(e);
+      console.error('Card save error:', e);
       toast.error('Hindi na-save. Subukan ulit.');
     }
   };
@@ -334,11 +347,20 @@ export default function Cards() {
     if (!card || !confirm('Tanggalin ang card na ito?')) return;
     setBusyAction(`delete-${card.id}`);
     try {
+      const cardIndex = cards.findIndex((item) => item.id === card.id);
       const remaining = cards.filter((item) => item.id !== card.id);
       const nextPrimary = card.isPrimary ? remaining[0] : null;
 
       await deleteCard(card.id);
       removeCardLocal(card.id);
+
+      setActiveCardIdx((current) => {
+        if (cardIndex === -1) return current;
+        if (remaining.length === 0) return 0;
+        if (cardIndex < current) return current - 1;
+        if (cardIndex === current && current >= remaining.length) return remaining.length - 1;
+        return current;
+      });
 
       if (nextPrimary) {
         await updateCard(nextPrimary.id, { isPrimary: true });
