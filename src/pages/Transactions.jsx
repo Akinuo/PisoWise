@@ -243,7 +243,7 @@ export default function Transactions() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: '100%' }}
               transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-              className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl p-6 max-h-[85dvh] overflow-y-auto"
+              className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl p-6 max-h-[85dvh] overflow-y-auto sheet-modal"
               style={{
                 background:     'rgba(12,22,40,0.98)',
                 backdropFilter: 'blur(28px)',

@@ -165,7 +165,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 50;
+    z-index: 40;
     background:      rgba(6, 13, 31, 0.85);
     backdrop-filter: blur(28px) saturate(1.5);
     -webkit-backdrop-filter: blur(28px) saturate(1.5);
@@ -174,6 +174,10 @@
     padding-bottom:  env(safe-area-inset-bottom, 0px);
   }
 
+  /* Ensure bottom-sheet modals have enough padding so buttons sit above the nav */
+  .sheet-modal {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+  }
   /* ── Labels ─────────────────────── */
   .label-gold {
     @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold;
@@ -270,9 +274,10 @@
 .scroll-hidden::-webkit-scrollbar { display: none; }
 
 /* ─── Card Shine Effect ─────────────────────────────────────────────────── */
-.card-shine {
+  .card-shine {
   position: relative;
   overflow: hidden;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.35);
 }
 .card-shine::after {
   content: '';

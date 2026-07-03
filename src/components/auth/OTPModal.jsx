@@ -141,7 +141,7 @@ export default function OTPModal({ isOpen, onClose, onVerified, purpose = 'add a
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             className="fixed inset-x-4 bottom-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[400px] z-50"
           >
-            <div className="glass p-6 relative">
+            <div className="glass p-6 relative sheet-modal">
               <button onClick={handleClose}
                 className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-pw-muted hover:text-white hover:bg-pw-subtle transition-all">
                 <HiXMark className="w-4 h-4" />
