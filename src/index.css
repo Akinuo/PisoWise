@@ -234,7 +234,8 @@
   }
 
   .page-content {
-    @apply flex-1 px-4 py-4 pb-28 overflow-y-auto;
+    @apply flex-1 px-4 py-4 pb-36 overflow-y-auto;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 9rem);
     max-width: 480px;
     margin: 0 auto;
     width: 100%;
