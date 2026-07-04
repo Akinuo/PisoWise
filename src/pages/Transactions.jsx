@@ -406,7 +406,7 @@ export default function Transactions() {
               className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl"
               style={{ maxHeight: '90dvh' }}
             >
-              <div className="overflow-y-auto sheet-modal px-5 pt-5 pb-4"
+              <div className="overflow-y-auto sheet-modal px-5 pt-5"
                 style={{ background: 'rgba(10,18,35,0.98)', backdropFilter: 'blur(28px)', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none', maxHeight: '90dvh' }}>
 
                 {/* Handle + close */}
