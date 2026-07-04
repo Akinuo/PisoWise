@@ -316,7 +316,7 @@ export default function Debts() {
               initial={{ opacity: 0, y: '100%' }} animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: '100%' }}
               transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-              className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl p-6 max-h-[90dvh] overflow-y-auto sheet-modal"
+              className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl px-6 pt-6 max-h-[90dvh] overflow-y-auto sheet-modal"
               style={{ background: 'rgba(12,22,40,0.98)', backdropFilter: 'blur(28px)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-5" />
               <h2 className="font-display text-xl font-bold text-white mb-5">

@@ -675,7 +675,7 @@ export default function Cards() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: '100%' }}
               transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-              className="fixed inset-x-0 bottom-0 z-50 max-h-[88dvh] overflow-y-auto rounded-t-3xl border border-white/10 bg-pw-dark/[0.98] p-6 shadow-card backdrop-blur-glass sm:mx-auto sm:max-w-2xl sheet-modal"
+              className="fixed inset-x-0 bottom-0 z-50 max-h-[88dvh] overflow-y-auto rounded-t-3xl border border-white/10 bg-pw-dark/[0.98] px-6 pt-6 shadow-card backdrop-blur-glass sm:mx-auto sm:max-w-2xl sheet-modal"
             >
               <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-white/20" />
 
