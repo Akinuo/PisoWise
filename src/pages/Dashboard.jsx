@@ -1,5 +1,5 @@
 // src/pages/Dashboard.jsx
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,7 +7,7 @@ import useStore from '../store/useStore';
 import {
   getTransactions, getSavingsGoals, getDebts, getInsights,
 } from '../services/firebase';
-import { formatPeso, formatPesoCompact, calculateHealthScore, getHealthScoreInfo, getPercent, formatDate } from '../utils/formatters';
+import { formatPeso, formatPesoCompact, calculateHealthScore, getHealthScoreInfo, formatDate } from '../utils/formatters';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants';
 import {
   HiArrowTrendingUp, HiArrowTrendingDown, HiBanknotes,
@@ -20,12 +20,12 @@ import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 import { groupByDay } from '../utils/formatters';
 
 const container = {
-  hidden:  {},
-  show: { transition: { staggerChildren: 0.06 } },
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07 } },
 };
 const item = {
-  hidden: { opacity: 0, y: 16 },
-  show:   { opacity: 1, y: 0, transition: { duration: 0.3 } },
+  hidden: { opacity: 0, y: 14 },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.32, ease: [0.4,0,0.2,1] } },
 };
 
 export default function Dashboard() {
@@ -44,7 +44,6 @@ export default function Dashboard() {
   const month = now.getMonth() + 1;
   const year  = now.getFullYear();
 
-  // Load data
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -67,24 +66,24 @@ export default function Dashboard() {
     })();
   }, [user]);
 
-  const stats      = getMonthlyStats(year, month);
+  const stats        = getMonthlyStats(year, month);
   const totalSavings = getTotalSavings();
-  const totalDebt  = getTotalDebt();
-
+  const totalDebt    = getTotalDebt();
   const monthlyIncome = profile?.monthlyIncome || stats.income || 0;
 
   const healthScore = calculateHealthScore({
-    monthlyIncome:    monthlyIncome,
-    monthlyExpenses:  stats.expenses,
+    monthlyIncome,
+    monthlyExpenses: stats.expenses,
     totalSavings,
     totalDebt,
-    savingsGoals:     savings,
+    savingsGoals: savings,
     debts,
   });
   const scoreInfo = getHealthScoreInfo(healthScore);
 
   const chartData = groupByDay(transactions, 7);
   const recentTxs = transactions.slice(0, 5);
+  const balance   = stats.income - stats.expenses;
 
   const getCatLabel = (id, type) => {
     const cats = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
@@ -93,74 +92,92 @@ export default function Dashboard() {
 
   const firstName = profile?.displayName?.split(' ')[0] || 'Kaibigan';
   const greeting  = now.getHours() < 12 ? 'Magandang umaga' : now.getHours() < 17 ? 'Magandang hapon' : 'Magandang gabi';
+  const monthLabel = now.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' });
 
   return (
     <div className="page">
       <div className="page-content">
-        <motion.div variants={container} initial="hidden" animate="show" className="space-y-4">
+        <motion.div variants={container} initial="hidden" animate="show" className="space-y-5">
 
           {/* ── Header ── */}
           <motion.div variants={item} className="flex items-start justify-between pt-2">
             <div>
-              <p className="text-pw-muted text-sm">{greeting},</p>
-              <h1 className="font-display text-2xl font-bold text-white">{firstName}! 👋</h1>
+              <p className="text-pw-muted text-xs font-medium uppercase tracking-widest mb-1">{greeting}</p>
+              <h1 className="font-display text-3xl text-white leading-none">{firstName}</h1>
             </div>
             <Link to="/profile">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pw-blue to-pw-blue-light flex items-center justify-center text-sm font-bold text-white shadow-blue">
+              <motion.div
+                whileTap={{ scale: 0.92 }}
+                className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white cursor-pointer"
+                style={{
+                  background: 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)',
+                  boxShadow: '0 0 0 2px rgba(255,255,255,0.08), 0 4px 12px rgba(29,78,216,0.35)',
+                }}
+              >
                 {firstName[0].toUpperCase()}
-              </div>
+              </motion.div>
             </Link>
           </motion.div>
 
-          {/* ── Balance Hero Card ── */}
+          {/* ── Hero Balance Card ── */}
           <motion.div variants={item}>
             <div
-              className="relative rounded-3xl p-5 overflow-hidden card-shine"
+              className="relative rounded-3xl p-6 overflow-hidden card-shine"
               style={{
-                background: 'linear-gradient(135deg, #1B4FD8 0%, #0C1628 60%, #1e3a8a 100%)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)',
+                background: 'linear-gradient(145deg, #1a3fa8 0%, #0D1526 55%, #112060 100%)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                boxShadow: '0 20px 56px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.10)',
               }}
             >
-              {/* Background sun rays */}
-              <div className="absolute -top-8 -right-8 w-40 h-40 opacity-10 pointer-events-none">
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="absolute inset-0 flex items-start justify-center"
-                    style={{ transform: `rotate(${i * 45}deg)` }}>
-                    <div className="w-0.5 h-20 bg-pw-gold rounded-full" />
-                  </div>
-                ))}
-                <div className="absolute inset-12 rounded-full bg-pw-gold" />
-              </div>
+              {/* Ambient glow */}
+              <div className="absolute -bottom-8 -left-8 w-48 h-48 rounded-full pointer-events-none"
+                style={{ background: 'radial-gradient(circle, rgba(245,183,49,0.07) 0%, transparent 70%)' }} />
+
+              {/* Subtle grid lines — luxury card texture */}
+              <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                style={{
+                  backgroundImage: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.5) 0px, transparent 1px, transparent 28px, rgba(255,255,255,0.5) 28px), repeating-linear-gradient(90deg, rgba(255,255,255,0.5) 0px, transparent 1px, transparent 28px, rgba(255,255,255,0.5) 28px)',
+                  backgroundSize: '28px 28px',
+                }} />
 
               <div className="relative">
-                <p className="text-blue-200 text-xs font-medium mb-1">{now.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })}</p>
-                <p className="text-white/70 text-sm mb-0.5">Natitirang Balanse</p>
-                <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-white/60 text-xl font-display font-bold">₱</span>
-                  <span className="text-white text-4xl font-display font-black peso-amount">
-                    {(stats.income - stats.expenses).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
+                {/* Month label */}
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-blue-200/60 text-[11px] font-medium uppercase tracking-[0.12em]">{monthLabel}</p>
+                  <span className="label-blue text-[10px] py-0.5">Balance</span>
                 </div>
-                <div className="flex gap-4">
-                  <div>
-                    <div className="flex items-center gap-1 mb-0.5">
-                      <HiArrowTrendingUp className="w-3 h-3 text-pw-emerald" />
-                      <span className="text-xs text-white/60">Kita</span>
-                    </div>
-                    <p className="text-pw-emerald font-bold font-display text-sm peso-amount">
-                      {formatPesoCompact(stats.income)}
-                    </p>
+
+                {/* Main balance */}
+                <div className="mb-5">
+                  <p className="text-white/50 text-xs font-medium mb-1">Natitirang Balanse</p>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-white/50 text-2xl font-display">₱</span>
+                    <span className="text-white text-5xl font-display leading-none peso-amount">
+                      {balance.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
                   </div>
-                  <div className="w-px bg-white/10" />
-                  <div>
-                    <div className="flex items-center gap-1 mb-0.5">
-                      <HiArrowTrendingDown className="w-3 h-3 text-pw-rose" />
-                      <span className="text-xs text-white/60">Gastos</span>
+                </div>
+
+                {/* Income / Expense row */}
+                <div className="flex gap-6">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.15)' }}>
+                      <HiArrowTrendingUp className="w-3.5 h-3.5 text-pw-emerald" />
                     </div>
-                    <p className="text-pw-rose font-bold font-display text-sm peso-amount">
-                      {formatPesoCompact(stats.expenses)}
-                    </p>
+                    <div>
+                      <p className="text-white/40 text-[10px] font-medium uppercase tracking-wider mb-0.5">Kita</p>
+                      <p className="text-pw-emerald font-mono font-semibold text-sm peso-amount">{formatPesoCompact(stats.income)}</p>
+                    </div>
+                  </div>
+                  <div className="w-px bg-white/8" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: 'rgba(244,63,94,0.15)' }}>
+                      <HiArrowTrendingDown className="w-3.5 h-3.5 text-pw-rose" />
+                    </div>
+                    <div>
+                      <p className="text-white/40 text-[10px] font-medium uppercase tracking-wider mb-0.5">Gastos</p>
+                      <p className="text-pw-rose font-mono font-semibold text-sm peso-amount">{formatPesoCompact(stats.expenses)}</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -171,84 +188,96 @@ export default function Dashboard() {
           {chartData.some(d => d.income > 0 || d.expense > 0) && (
             <motion.div variants={item}>
               <div className="glass p-4">
-                <p className="text-xs text-pw-muted mb-3 font-medium">Gastos nitong 7 Araw</p>
-                <ResponsiveContainer width="100%" height={80}>
+                <p className="section-title mb-3">7-Araw na Gastos</p>
+                <ResponsiveContainer width="100%" height={72}>
                   <AreaChart data={chartData}>
                     <defs>
                       <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor="#F43F5E" stopOpacity={0.4} />
+                        <stop offset="5%"  stopColor="#F43F5E" stopOpacity={0.35} />
                         <stop offset="95%" stopColor="#F43F5E" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="incGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor="#10B981" stopOpacity={0.4} />
+                        <stop offset="5%"  stopColor="#10B981" stopOpacity={0.35} />
                         <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <Tooltip
-                      contentStyle={{ background: 'rgba(12,22,40,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }}
-                      labelStyle={{ color: '#fff', marginBottom: '4px' }}
+                      contentStyle={{
+                        background: 'rgba(8,14,31,0.96)',
+                        border: '1px solid rgba(255,255,255,0.09)',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontFamily: 'Inter, sans-serif',
+                      }}
+                      labelStyle={{ color: 'rgba(255,255,255,0.5)', marginBottom: '4px', fontSize: '11px' }}
                       formatter={(v, n) => [formatPeso(v), n === 'expense' ? 'Gastos' : 'Kita']}
                     />
-                    <Area type="monotone" dataKey="income"  stroke="#10B981" fill="url(#incGrad)" strokeWidth={2} dot={false} />
-                    <Area type="monotone" dataKey="expense" stroke="#F43F5E" fill="url(#expGrad)" strokeWidth={2} dot={false} />
+                    <Area type="monotone" dataKey="income"  stroke="#10B981" fill="url(#incGrad)" strokeWidth={1.5} dot={false} />
+                    <Area type="monotone" dataKey="expense" stroke="#F43F5E" fill="url(#expGrad)" strokeWidth={1.5} dot={false} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             </motion.div>
           )}
 
-          {/* ── Health Score + Quick Stats Row ── */}
+          {/* ── Health Score + Savings Stats ── */}
           <motion.div variants={item} className="grid grid-cols-2 gap-3">
-            {/* Health Score */}
-            <Link to="/insights" className="glass p-4 flex flex-col items-center gap-2 hover:border-pw-gold/20 transition-colors">
-              <div className="w-16 h-16">
-                <CircularProgressbar
-                  value={healthScore}
-                  text={`${healthScore}`}
-                  styles={buildStyles({
-                    textSize:       '28px',
-                    textColor:      scoreInfo.color,
-                    pathColor:      scoreInfo.color,
-                    trailColor:     'rgba(255,255,255,0.06)',
-                    pathTransitionDuration: 1,
-                  })}
-                />
-              </div>
-              <p className="text-xs text-pw-muted text-center">Financial Health {scoreInfo.emoji}</p>
-              <span className="text-xs font-semibold" style={{ color: scoreInfo.color }}>{scoreInfo.label}</span>
+            <Link to="/insights">
+              <motion.div whileTap={{ scale: 0.97 }} className="glass p-4 flex flex-col items-center gap-3 h-full cursor-pointer hover:border-pw-gold/20 transition-colors">
+                <div className="w-14 h-14">
+                  <CircularProgressbar
+                    value={healthScore}
+                    text={`${healthScore}`}
+                    styles={buildStyles({
+                      textSize:       '26px',
+                      textColor:      scoreInfo.color,
+                      pathColor:      scoreInfo.color,
+                      trailColor:     'rgba(255,255,255,0.06)',
+                      pathTransitionDuration: 1.2,
+                    })}
+                  />
+                </div>
+                <div className="text-center">
+                  <p className="text-[11px] text-pw-muted font-medium uppercase tracking-wide">Financial Health</p>
+                  <p className="text-xs font-semibold mt-0.5" style={{ color: scoreInfo.color }}>{scoreInfo.label}</p>
+                </div>
+              </motion.div>
             </Link>
 
-            {/* Savings */}
-            <Link to="/savings" className="glass p-4 flex flex-col justify-between hover:border-pw-emerald/20 transition-colors">
-              <div className="w-9 h-9 rounded-2xl bg-pw-emerald-dim flex items-center justify-center mb-2">
-                <HiBanknotes className="w-4 h-4 text-pw-emerald" />
-              </div>
-              <div>
-                <p className="text-xs text-pw-muted mb-0.5">Kabuuang Ipon</p>
-                <p className="text-white font-bold font-display peso-amount">{formatPesoCompact(totalSavings)}</p>
-                <p className="text-xs text-pw-muted mt-0.5">{savings.length} goals</p>
-              </div>
+            <Link to="/savings">
+              <motion.div whileTap={{ scale: 0.97 }} className="glass p-4 flex flex-col justify-between h-full cursor-pointer hover:border-pw-emerald/20 transition-colors">
+                <div className="icon-box" style={{ background: 'rgba(16,185,129,0.12)' }}>
+                  <HiBanknotes className="w-4.5 h-4.5 text-pw-emerald" style={{ width: 18, height: 18 }} />
+                </div>
+                <div className="mt-3">
+                  <p className="section-title mb-1">Kabuuang Ipon</p>
+                  <p className="text-white font-semibold text-lg peso-amount">{formatPesoCompact(totalSavings)}</p>
+                  <p className="text-pw-muted text-xs mt-0.5">{savings.length} {savings.length === 1 ? 'goal' : 'goals'}</p>
+                </div>
+              </motion.div>
             </Link>
           </motion.div>
 
           {/* ── Quick Actions ── */}
           <motion.div variants={item}>
             <p className="section-title">Mabilis na Aksyon</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5">
               {[
-                { to: '/transactions?tab=expense', icon: HiArrowTrendingDown, label: 'Idagdag Gastos',  color: '#F43F5E', bg: 'rgba(244,63,94,0.10)' },
-                { to: '/transactions?tab=income',  icon: HiArrowTrendingUp,   label: 'Idagdag Kita',   color: '#10B981', bg: 'rgba(16,185,129,0.10)' },
-                { to: '/budget',                   icon: HiSparkles,          label: 'AI Budget',      color: '#F7C13A', bg: 'rgba(247,193,58,0.10)' },
-                { to: '/debts',                    icon: HiShieldCheck,       label: 'Pamamahala ng Utang', color: '#3B82F6', bg: 'rgba(59,130,246,0.10)' },
-              ].map(({ to, icon: Icon, label, color, bg }) => (
+                { to: '/transactions?tab=expense', icon: HiArrowTrendingDown, label: 'Idagdag Gastos',     color: '#F43F5E', bg: 'rgba(244,63,94,0.10)',  border: 'rgba(244,63,94,0.16)' },
+                { to: '/transactions?tab=income',  icon: HiArrowTrendingUp,   label: 'Idagdag Kita',      color: '#10B981', bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.16)' },
+                { to: '/budget',                   icon: HiSparkles,          label: 'AI Budget',         color: '#F5B731', bg: 'rgba(245,183,49,0.10)', border: 'rgba(245,183,49,0.16)' },
+                { to: '/debts',                    icon: HiShieldCheck,       label: 'Pamamahala ng Utang', color: '#3B82F6', bg: 'rgba(59,130,246,0.10)', border: 'rgba(59,130,246,0.16)' },
+              ].map(({ to, icon: Icon, label, color, bg, border }) => (
                 <Link key={to} to={to}>
-                  <motion.div whileTap={{ scale: 0.96 }}
-                    className="glass p-4 flex items-center gap-3 hover:border-white/15 transition-all cursor-pointer">
-                    <div className="w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: bg }}>
-                      <Icon className="w-4 h-4" style={{ color }} />
+                  <motion.div
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-3 p-3.5 rounded-2xl transition-all cursor-pointer"
+                    style={{ background: bg, border: `1px solid ${border}` }}
+                  >
+                    <div className="icon-box-sm flex-shrink-0" style={{ background: `${color}1A` }}>
+                      <Icon style={{ width: 16, height: 16, color }} />
                     </div>
-                    <p className="text-sm text-white font-medium leading-tight">{label}</p>
+                    <p className="text-white text-sm font-medium leading-tight">{label}</p>
                   </motion.div>
                 </Link>
               ))}
@@ -259,18 +288,20 @@ export default function Dashboard() {
           {insights.length > 0 && (
             <motion.div variants={item}>
               <Link to="/insights">
-                <div className="glass-gold p-4">
-                  <div className="flex items-center justify-between mb-2">
+                <motion.div whileTap={{ scale: 0.98 }} className="glass-gold p-4 cursor-pointer">
+                  <div className="flex items-center justify-between mb-2.5">
                     <div className="flex items-center gap-2">
-                      <HiSparkles className="w-4 h-4 text-pw-gold" />
-                      <p className="text-xs font-semibold text-pw-gold">AI Insight</p>
+                      <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: 'rgba(245,183,49,0.2)' }}>
+                        <HiSparkles className="w-3 h-3 text-pw-gold" />
+                      </div>
+                      <p className="text-xs font-semibold text-pw-gold uppercase tracking-wider">AI Insight</p>
                     </div>
-                    <HiChevronRight className="w-4 h-4 text-pw-gold/60" />
+                    <HiChevronRight className="w-4 h-4 text-pw-gold/50" />
                   </div>
-                  <p className="text-white text-sm line-clamp-3 leading-relaxed">
-                    {insights[0]?.content?.slice(0, 140)}...
+                  <p className="text-white/80 text-sm line-clamp-3 leading-relaxed">
+                    {insights[0]?.content?.slice(0, 140)}…
                   </p>
-                </div>
+                </motion.div>
               </Link>
             </motion.div>
           )}
@@ -279,14 +310,16 @@ export default function Dashboard() {
           <motion.div variants={item}>
             <div className="flex items-center justify-between mb-3">
               <p className="section-title mb-0">Mga Kamakailang Transaksyon</p>
-              <Link to="/transactions" className="text-xs text-pw-blue-light hover:underline">Tingnan Lahat</Link>
+              <Link to="/transactions" className="text-xs text-pw-blue-light hover:underline font-medium">Lahat →</Link>
             </div>
 
             {recentTxs.length === 0 ? (
               <div className="glass p-8 text-center">
-                <HiArrowsRightLeft className="w-8 h-8 text-pw-muted mx-auto mb-2" />
-                <p className="text-pw-muted text-sm">Walang transaksyon pa.</p>
-                <Link to="/transactions" className="text-pw-gold text-xs mt-1 inline-block">Mag-dagdag ngayon →</Link>
+                <div className="icon-box mx-auto mb-3" style={{ background: 'rgba(255,255,255,0.05)', width: 48, height: 48, borderRadius: 16 }}>
+                  <HiArrowsRightLeft className="w-5 h-5 text-pw-muted" style={{ width: 20, height: 20 }} />
+                </div>
+                <p className="text-white/70 font-medium text-sm mb-1">Walang transaksyon pa</p>
+                <Link to="/transactions" className="text-pw-gold text-xs hover:underline">Mag-dagdag ngayon →</Link>
               </div>
             ) : (
               <div className="glass overflow-hidden">
@@ -294,17 +327,19 @@ export default function Dashboard() {
                   const cat = getCatLabel(tx.category, tx.type);
                   return (
                     <div key={tx.id}
-                      className={`flex items-center gap-3 p-4 ${i < recentTxs.length - 1 ? 'border-b border-white/5' : ''}`}>
-                      <div className="w-9 h-9 rounded-2xl flex items-center justify-center text-base flex-shrink-0"
-                        style={{ background: tx.type === 'income' ? 'rgba(16,185,129,0.12)' : 'rgba(244,63,94,0.12)' }}>
+                      className={`flex items-center gap-3 px-4 py-3.5 ${i < recentTxs.length - 1 ? 'border-b border-white/[0.045]' : ''}`}>
+                      <div
+                        className="icon-box-sm flex-shrink-0 text-base"
+                        style={{ background: tx.type === 'income' ? 'rgba(16,185,129,0.10)' : 'rgba(244,63,94,0.10)' }}
+                      >
                         {cat.icon}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm font-medium truncate">{tx.description || cat.label}</p>
                         <p className="text-pw-muted text-xs mt-0.5">{formatDate(tx.date, 'relative')}</p>
                       </div>
-                      <p className={`font-bold text-sm peso-amount flex-shrink-0 ${tx.type === 'income' ? 'text-pw-emerald' : 'text-pw-rose'}`}>
-                        {tx.type === 'income' ? '+' : '-'}{formatPeso(tx.amount, 0)}
+                      <p className={`font-semibold text-sm peso-amount flex-shrink-0 ${tx.type === 'income' ? 'text-pw-emerald' : 'text-pw-rose'}`}>
+                        {tx.type === 'income' ? '+' : '−'}{formatPeso(tx.amount, 0)}
                       </p>
                     </div>
                   );
@@ -313,18 +348,21 @@ export default function Dashboard() {
             )}
           </motion.div>
 
-          {/* ── Bottom quick links ── */}
-          <motion.div variants={item} className="grid grid-cols-3 gap-3 pb-4">
+          {/* ── Quick links footer ── */}
+          <motion.div variants={item} className="grid grid-cols-3 gap-2.5 pb-4">
             {[
-              { to: '/cards',   icon: HiCreditCard,   label: 'Mga Card' },
-              { to: '/lessons', icon: HiAcademicCap,  label: 'Aralin' },
-              { to: '/insights',icon: HiChartBar,     label: 'AI Insights' },
+              { to: '/cards',    icon: HiCreditCard,  label: 'Mga Card' },
+              { to: '/lessons',  icon: HiAcademicCap, label: 'Aralin' },
+              { to: '/insights', icon: HiChartBar,    label: 'AI Insights' },
             ].map(({ to, icon: Icon, label }) => (
               <Link key={to} to={to}>
-                <div className="glass-sm p-3 flex flex-col items-center gap-2 hover:border-white/15 transition-all">
-                  <Icon className="w-5 h-5 text-pw-muted" />
-                  <p className="text-xs text-pw-muted text-center">{label}</p>
-                </div>
+                <motion.div
+                  whileTap={{ scale: 0.95 }}
+                  className="glass-sm p-3.5 flex flex-col items-center gap-2 hover:border-white/12 transition-all cursor-pointer"
+                >
+                  <Icon className="w-4.5 h-4.5 text-pw-muted" style={{ width: 18, height: 18 }} />
+                  <p className="text-[11px] text-pw-muted text-center font-medium">{label}</p>
+                </motion.div>
               </Link>
             ))}
           </motion.div>

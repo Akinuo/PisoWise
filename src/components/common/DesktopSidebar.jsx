@@ -12,8 +12,8 @@ const NAV_GROUPS = [
   {
     label: 'Overview',
     items: [
-      { to: '/',         icon: HiHome,             label: 'Dashboard' },
-      { to: '/insights', icon: HiChartBar,         label: 'AI Insights' },
+      { to: '/',         icon: HiHome,    label: 'Dashboard' },
+      { to: '/insights', icon: HiChartBar, label: 'AI Insights' },
     ],
   },
   {
@@ -41,32 +41,37 @@ export default function DesktopSidebar() {
     <aside
       className="hidden md:flex fixed left-0 top-0 bottom-0 w-60 flex-col z-50"
       style={{
-        background: 'rgba(6,13,31,0.95)',
-        backdropFilter: 'blur(28px)',
-        borderRight: '1px solid rgba(255,255,255,0.06)',
+        background: 'rgba(8,14,31,0.96)',
+        backdropFilter: 'blur(32px)',
+        borderRight: '1px solid rgba(255,255,255,0.055)',
       }}
     >
-      {/* Logo */}
-      <div className="px-6 pt-8 pb-6">
+      {/* Wordmark */}
+      <div className="px-5 pt-7 pb-7">
         <div className="flex items-center gap-3">
           <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-bold"
-            style={{ background: 'linear-gradient(135deg, #F7C13A, #F59E0B)', color: '#060D1F' }}
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-base font-bold"
+            style={{
+              background: 'linear-gradient(135deg, #F5B731 0%, #F59E0B 100%)',
+              color: '#080E1F',
+              boxShadow: '0 4px 14px rgba(245,183,49,0.30)',
+              fontFamily: 'JetBrains Mono, monospace',
+            }}
           >
             ₱
           </div>
           <div>
-            <h1 className="font-display font-bold text-white text-lg leading-none">PisoWise</h1>
-            <p className="text-xs text-pw-muted mt-0.5">Smart Finance</p>
+            <h1 className="font-display text-white text-lg leading-none" style={{ letterSpacing: '-0.01em' }}>PisoWise</h1>
+            <p className="text-[11px] text-pw-muted mt-0.5 font-medium uppercase tracking-widest">Smart Finance</p>
           </div>
         </div>
       </div>
 
-      {/* Nav Groups */}
+      {/* Nav */}
       <nav className="flex-1 px-3 overflow-y-auto scroll-hidden">
         {NAV_GROUPS.map((group) => (
-          <div key={group.label} className="mb-6">
-            <p className="px-3 mb-2 text-[10px] uppercase tracking-widest font-semibold text-pw-muted opacity-60">
+          <div key={group.label} className="mb-5">
+            <p className="px-3 mb-1.5 text-[10px] uppercase tracking-[0.14em] font-semibold text-pw-muted opacity-55">
               {group.label}
             </p>
             {group.items.map(({ to, icon: Icon, label }) => (
@@ -77,14 +82,18 @@ export default function DesktopSidebar() {
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-xl mb-0.5 text-sm font-medium transition-all duration-150 ${
                     isActive
-                      ? 'bg-pw-gold-dim text-pw-gold'
-                      : 'text-pw-muted hover:bg-pw-subtle hover:text-white'
+                      ? 'text-pw-gold'
+                      : 'text-pw-muted hover:text-white'
                   }`
                 }
+                style={({ isActive }) => ({
+                  background: isActive ? 'rgba(245,183,49,0.09)' : 'transparent',
+                  border: isActive ? '1px solid rgba(245,183,49,0.12)' : '1px solid transparent',
+                })}
               >
                 {({ isActive }) => (
                   <>
-                    <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-pw-gold' : ''}`} />
+                    <Icon style={{ width: 16, height: 16, flexShrink: 0, color: isActive ? '#F5B731' : undefined }} />
                     {label}
                   </>
                 )}
@@ -94,27 +103,32 @@ export default function DesktopSidebar() {
         ))}
       </nav>
 
-      {/* User section */}
-      <div className="px-3 pb-6">
+      {/* User area */}
+      <div className="px-3 pb-5">
         <div className="divider" />
         <NavLink
           to="/profile"
-          className="flex items-center gap-3 px-3 py-2 rounded-xl mb-1 hover:bg-pw-subtle transition-all"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 hover:bg-pw-subtle transition-all cursor-pointer"
         >
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pw-blue to-pw-blue-light flex items-center justify-center text-sm font-bold text-white">
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)' }}
+          >
             {(profile?.displayName || user?.email || 'U')[0].toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">{profile?.displayName || 'User'}</p>
-            <p className="text-xs text-pw-muted truncate">{user?.email}</p>
+            <p className="text-sm font-medium text-white truncate leading-tight">{profile?.displayName || 'User'}</p>
+            <p className="text-[11px] text-pw-muted truncate mt-0.5">{user?.email}</p>
           </div>
-          <HiUser className="w-4 h-4 text-pw-muted flex-shrink-0" />
         </NavLink>
         <button
           onClick={logout}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-pw-muted hover:text-pw-rose hover:bg-pw-rose-dim transition-all text-sm"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-pw-muted hover:text-pw-rose transition-all text-sm cursor-pointer"
+          style={{ background: 'transparent' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(244,63,94,0.07)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
         >
-          <HiArrowRightOnRectangle className="w-4 h-4" />
+          <HiArrowRightOnRectangle style={{ width: 16, height: 16 }} />
           Sign Out
         </button>
       </div>

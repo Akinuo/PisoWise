@@ -58,78 +58,76 @@ export default function Login() {
 
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center px-4 relative overflow-hidden bg-pw">
-      {/* Decorative glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(247,193,58,0.06) 0%, transparent 70%)' }} />
+      {/* Ambient radial glow */}
+      <div
+        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(29,78,216,0.06) 0%, transparent 68%)' }}
+      />
+      <div
+        className="absolute bottom-0 right-0 w-80 h-80 pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(245,183,49,0.04) 0%, transparent 68%)' }}
+      />
 
-      {/* Philippine Sun background (subtle) */}
+      {/* Logo section */}
       <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
-        className="absolute top-12 right-12 w-32 h-32 opacity-5 pointer-events-none"
-      >
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="absolute inset-0 flex items-start justify-center"
-            style={{ transform: `rotate(${i * 45}deg)` }}>
-            <div className="w-1 h-10 bg-pw-gold rounded-full" />
-          </div>
-        ))}
-        <div className="absolute inset-8 rounded-full bg-pw-gold" />
-      </motion.div>
-
-      {/* Logo */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -18 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.4,0,0.2,1] }}
         className="flex flex-col items-center mb-8"
       >
         <div
-          className="w-16 h-16 rounded-3xl flex items-center justify-center text-3xl font-display font-black mb-3"
+          className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold mb-4"
           style={{
-            background:  'linear-gradient(135deg, #F7C13A, #F59E0B)',
-            color:       '#060D1F',
-            boxShadow:   '0 0 40px rgba(247,193,58,0.35)',
+            background: 'linear-gradient(135deg, #F5B731 0%, #F59E0B 100%)',
+            color: '#080E1F',
+            boxShadow: '0 8px 32px rgba(245,183,49,0.35)',
+            fontFamily: 'JetBrains Mono, monospace',
           }}
         >
           ₱
         </div>
-        <h1 className="font-display text-3xl font-black text-white">PisoWise</h1>
-        <p className="text-pw-muted text-sm mt-1">Mag-login sa inyong account</p>
+        <h1 className="font-display text-4xl text-white leading-none mb-1.5">PisoWise</h1>
+        <p className="text-pw-muted text-sm font-medium">Mag-login sa inyong account</p>
       </motion.div>
 
       {/* Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+        transition={{ delay: 0.1, duration: 0.4, ease: [0.4,0,0.2,1] }}
         className="glass w-full max-w-sm p-6"
       >
+        {/* Google Sign In */}
         <button
           type="button"
           onClick={handleGoogleSignIn}
           disabled={isBusy}
-          className="w-full h-12 rounded-2xl border border-white/10 bg-white text-pw-navy font-semibold text-sm flex items-center justify-center gap-3 transition-all hover:bg-white/90 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full h-11 rounded-2xl border bg-white text-sm font-semibold flex items-center justify-center gap-3 transition-all hover:bg-white/90 disabled:opacity-55 disabled:cursor-not-allowed cursor-pointer"
+          style={{ color: '#1a1a2e', borderColor: 'rgba(255,255,255,0.15)' }}
         >
           {googleLoading ? (
-            <span className="w-4 h-4 rounded-full border-2 border-pw-navy border-t-transparent animate-spin" />
+            <span className="w-4 h-4 rounded-full border-2 border-gray-400 border-t-transparent animate-spin" />
           ) : (
-            <FcGoogle className="w-5 h-5" />
+            <FcGoogle style={{ width: 18, height: 18 }} />
           )}
           Continue with Google
         </button>
 
         <div className="flex items-center gap-3 my-5">
-          <div className="h-px flex-1 bg-white/10" />
-          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-pw-muted">or</span>
-          <div className="h-px flex-1 bg-white/10" />
+          <div className="h-px flex-1 bg-white/8" />
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-pw-muted">o</span>
+          <div className="h-px flex-1 bg-white/8" />
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Email */}
           <div>
-            <label className="block text-xs text-pw-muted mb-1.5 font-medium">Email</label>
+            <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">Email</label>
             <div className="relative">
-              <HiEnvelope className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-pw-muted" />
+              <HiEnvelope
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pw-muted"
+                style={{ width: 15, height: 15 }}
+              />
               <input
                 type="email"
                 placeholder="ikaw@email.com"
@@ -141,55 +139,71 @@ export default function Login() {
                 })}
               />
             </div>
-            {errors.email && <p className="text-pw-rose text-xs mt-1">{errors.email.message}</p>}
+            {errors.email && <p className="text-pw-rose text-xs mt-1.5 font-medium">{errors.email.message}</p>}
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-xs text-pw-muted mb-1.5 font-medium">Password</label>
+            <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">Password</label>
             <div className="relative">
-              <HiLockClosed className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-pw-muted" />
+              <HiLockClosed
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pw-muted"
+                style={{ width: 15, height: 15 }}
+              />
               <input
                 type={showPw ? 'text' : 'password'}
                 placeholder="••••••••"
                 autoComplete="current-password"
-                className="input-glass pl-10 pr-10"
+                className="input-glass pl-10 pr-11"
                 {...register('password', { required: 'Password is required' })}
               />
               <button
                 type="button"
                 onClick={() => setShowPw(v => !v)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-pw-muted hover:text-white"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-pw-muted hover:text-white transition-colors cursor-pointer"
               >
-                {showPw ? <HiEyeSlash className="w-4 h-4" /> : <HiEye className="w-4 h-4" />}
+                {showPw
+                  ? <HiEyeSlash style={{ width: 16, height: 16 }} />
+                  : <HiEye style={{ width: 16, height: 16 }} />
+                }
               </button>
             </div>
-            {errors.password && <p className="text-pw-rose text-xs mt-1">{errors.password.message}</p>}
+            {errors.password && <p className="text-pw-rose text-xs mt-1.5 font-medium">{errors.password.message}</p>}
           </div>
 
           {/* Forgot password */}
-          <div className="text-right">
-            <button type="button" onClick={() => setShowReset(v => !v)}
-              className="text-xs text-pw-blue-light hover:underline">
+          <div className="text-right -mt-1">
+            <button
+              type="button"
+              onClick={() => setShowReset(v => !v)}
+              className="text-xs text-pw-blue-light hover:underline font-medium cursor-pointer"
+            >
               Nakalimutan ang password?
             </button>
           </div>
 
           {showReset && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-              className="glass-sm p-3">
-              <p className="text-xs text-pw-muted mb-2">Send reset link to the email above.</p>
-              <button type="button" onClick={handleReset} className="btn-secondary text-xs py-2 w-full">
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="glass-sm p-3.5"
+            >
+              <p className="text-xs text-pw-muted mb-2.5 leading-relaxed">Send reset link to the email address above.</p>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="btn-secondary text-xs py-2 w-full"
+              >
                 Send Reset Email
               </button>
             </motion.div>
           )}
 
-          <button type="submit" disabled={isBusy} className="btn-primary w-full mt-2">
+          <button type="submit" disabled={isBusy} className="btn-primary w-full mt-1">
             {loading ? (
               <span className="flex items-center gap-2 justify-center">
-                <span className="w-4 h-4 rounded-full border-2 border-pw-navy border-t-transparent animate-spin" />
-                Nag-login...
+                <span className="w-3.5 h-3.5 rounded-full border-2 border-pw-navy border-t-transparent animate-spin" />
+                Nag-login…
               </span>
             ) : 'Mag-login'}
           </button>
@@ -205,12 +219,12 @@ export default function Login() {
         </p>
       </motion.div>
 
-      {/* Tagline */}
+      {/* Footer tagline */}
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-        className="text-pw-muted text-xs mt-6 text-center max-w-xs"
+        transition={{ delay: 0.5 }}
+        className="text-pw-muted text-xs mt-6 text-center max-w-xs leading-relaxed"
       >
         "Ang malaking ipon ay nagsisimula sa maliit na hakbang." 🇵🇭
       </motion.p>
