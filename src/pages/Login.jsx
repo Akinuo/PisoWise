@@ -33,10 +33,10 @@ export default function Login() {
 
   const handleReset = async () => {
     const email = getValues('email');
-    if (!email) { toast.error('Enter your email above first.'); return; }
+    if (!email) { toast.error('Ilagay muna ang iyong email.'); return; }
     try {
       await forgotPassword(email);
-      toast.success('Password reset email sent!');
+      toast.success('Naipadala na ang reset link!');
       setShowReset(false);
     } catch (e) {
       toast.error(e.message);
@@ -47,7 +47,7 @@ export default function Login() {
     setGoogleLoading(true);
     try {
       await googleSignIn();
-      toast.success('Signed in with Google!');
+      toast.success('Naka-sign in na gamit ang Google!');
       navigate('/', { replace: true });
     } catch (e) {
       toast.error(e.message);
@@ -102,21 +102,26 @@ export default function Login() {
           type="button"
           onClick={handleGoogleSignIn}
           disabled={isBusy}
-          className="w-full h-11 rounded-2xl border bg-white text-sm font-semibold flex items-center justify-center gap-3 transition-all hover:bg-white/90 disabled:opacity-55 disabled:cursor-not-allowed cursor-pointer"
-          style={{ color: '#1a1a2e', borderColor: 'rgba(255,255,255,0.15)' }}
+          className="w-full h-12 rounded-2xl bg-white text-sm font-semibold flex items-center justify-center gap-3 transition-all hover:bg-gray-50 active:bg-gray-100 disabled:opacity-55 disabled:cursor-not-allowed cursor-pointer"
+          style={{
+            color: '#1a1a2e',
+            border: '1px solid rgba(0,0,0,0.10)',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+          }}
         >
           {googleLoading ? (
             <span className="w-4 h-4 rounded-full border-2 border-gray-400 border-t-transparent animate-spin" />
           ) : (
-            <FcGoogle style={{ width: 18, height: 18 }} />
+            <FcGoogle style={{ width: 18, height: 18, flexShrink: 0 }} />
           )}
-          Continue with Google
+          Mag-login gamit ang Google
         </button>
 
+        {/* Divider */}
         <div className="flex items-center gap-3 my-5">
-          <div className="h-px flex-1 bg-white/8" />
+          <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.09)' }} />
           <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-pw-muted">o</span>
-          <div className="h-px flex-1 bg-white/8" />
+          <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.09)' }} />
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -134,8 +139,8 @@ export default function Login() {
                 autoComplete="email"
                 className="input-glass pl-10"
                 {...register('email', {
-                  required: 'Email is required',
-                  pattern: { value: /\S+@\S+\.\S+/, message: 'Invalid email' },
+                  required: 'Kinakailangan ang email',
+                  pattern: { value: /\S+@\S+\.\S+/, message: 'Di-wastong email' },
                 })}
               />
             </div>
@@ -155,7 +160,7 @@ export default function Login() {
                 placeholder="••••••••"
                 autoComplete="current-password"
                 className="input-glass pl-10 pr-11"
-                {...register('password', { required: 'Password is required' })}
+                {...register('password', { required: 'Kinakailangan ang password' })}
               />
               <button
                 type="button"
@@ -188,13 +193,15 @@ export default function Login() {
               animate={{ opacity: 1, height: 'auto' }}
               className="glass-sm p-3.5"
             >
-              <p className="text-xs text-pw-muted mb-2.5 leading-relaxed">Send reset link to the email address above.</p>
+              <p className="text-xs text-pw-muted mb-2.5 leading-relaxed">
+                Ipapadala ang reset link sa email na nasa itaas.
+              </p>
               <button
                 type="button"
                 onClick={handleReset}
                 className="btn-secondary text-xs py-2 w-full"
               >
-                Send Reset Email
+                Ipadala ang Reset Link
               </button>
             </motion.div>
           )}
