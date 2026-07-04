@@ -1,5 +1,5 @@
 // src/pages/Transactions.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
@@ -12,8 +12,9 @@ import { Timestamp } from '../services/firebase';
 import toast from 'react-hot-toast';
 import {
   HiPlus, HiArrowTrendingUp, HiArrowTrendingDown,
-  HiTrash, HiArrowsRightLeft,
+  HiTrash,
 } from 'react-icons/hi2';
+import CategoryIcon from '../components/common/CategoryIcon';
 
 const TABS    = ['Lahat', 'Kita', 'Gastos'];
 const FILTERS = ['Lahat', 'Ngayon', 'Linggong Ito', 'Buwang Ito'];
@@ -37,7 +38,7 @@ export default function Transactions() {
   );
   const [submitting, setSubmitting] = useState(false);
 
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
     defaultValues: { date: new Date().toISOString().slice(0, 10) },
   });
 
@@ -65,6 +66,15 @@ export default function Transactions() {
       return true;
     });
   };
+
+  // Clear selected category whenever the type tab switches
+  const prevTxType = useRef(txType);
+  useEffect(() => {
+    if (prevTxType.current !== txType) {
+      setValue('category', '', { shouldValidate: false });
+      prevTxType.current = txType;
+    }
+  }, [txType, setValue]);
 
   const displayed  = filterTxs(transactions);
   const categories = txType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
@@ -194,13 +204,9 @@ export default function Transactions() {
                   <motion.div key={tx.id} layout
                     initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}>
                     <div className="glass-sm p-4 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg flex-shrink-0"
-                        style={{
-                          background: tx.type === 'income'
-                            ? 'rgba(16,185,129,0.12)'
-                            : 'rgba(244,63,94,0.12)',
-                        }}>
-                        {cat.icon}
+                      <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: `${cat.color}1e` }}>
+                        <CategoryIcon id={tx.category} color={cat.color} size={20} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm font-medium truncate">
@@ -294,35 +300,68 @@ export default function Transactions() {
                   )}
                 </div>
 
-                {/* Category grid (top 8) */}
+                {/* Category clickable grid — all categories, no dropdown */}
                 <div>
-                  <label className="block text-xs text-pw-muted mb-1.5">Kategorya</label>
-                  <div className="grid grid-cols-4 gap-2 mb-2">
-                    {categories.slice(0, 8).map(cat => (
-                      <label key={cat.id} className="cursor-pointer">
-                        <input type="radio" value={cat.id} className="sr-only"
-                          {...register('category', { required: 'Pumili ng kategorya' })} />
-                        <div className={`flex flex-col items-center gap-1 p-2 rounded-xl border transition-all text-center ${
-                          watch('category') === cat.id
-                            ? 'border-pw-gold/50 bg-pw-gold-dim'
-                            : 'border-white/08 bg-pw-subtle hover:border-white/15'
-                        }`}>
-                          <span className="text-lg">{cat.icon}</span>
-                          <span className="text-[9px] text-pw-muted leading-tight line-clamp-2">{cat.label}</span>
-                        </div>
-                      </label>
-                    ))}
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs text-pw-muted">Kategorya</label>
+                    {watch('category') && (
+                      <span className="text-[10px] text-pw-gold font-medium">
+                        {categories.find(c => c.id === watch('category'))?.label}
+                      </span>
+                    )}
                   </div>
-                  {/* Full dropdown */}
-                  <select className="input-glass text-sm"
-                    {...register('category', { required: 'Pumili ng kategorya' })}>
-                    <option value="">Pumili ng kategorya...</option>
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.icon} {cat.label}</option>
-                    ))}
-                  </select>
+
+                  {/* Hidden input registers the field with react-hook-form */}
+                  <input
+                    type="hidden"
+                    {...register('category', { required: 'Pumili ng kategorya' })}
+                  />
+
+                  <div
+                    className="grid grid-cols-4 gap-1.5 max-h-[14rem] overflow-y-auto pr-0.5"
+                    style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.10) transparent' }}
+                  >
+                    {categories.map(cat => {
+                      const sel = watch('category') === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setValue('category', cat.id, { shouldValidate: true })}
+                          className={`relative flex flex-col items-center gap-1.5 p-2 rounded-2xl border transition-all duration-150 select-none ${
+                            sel
+                              ? 'border-pw-gold/55 bg-pw-gold-dim'
+                              : 'border-white/[0.06] bg-white/[0.025] active:bg-white/[0.05]'
+                          }`}
+                          style={sel ? {
+                            boxShadow: '0 0 0 1px rgba(245,183,49,0.15) inset, 0 2px 10px rgba(245,183,49,0.08)',
+                          } : {}}
+                        >
+                          {sel && (
+                            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-pw-gold" />
+                          )}
+                          <div
+                            className="w-9 h-9 rounded-xl flex items-center justify-center"
+                            style={{ background: `${cat.color}${sel ? '28' : '18'}` }}
+                          >
+                            <CategoryIcon
+                              id={cat.id}
+                              color={sel ? '#F5B731' : cat.color}
+                              size={18}
+                            />
+                          </div>
+                          <span className={`text-[9px] leading-tight text-center line-clamp-2 w-full ${
+                            sel ? 'text-pw-gold font-semibold' : 'text-pw-muted'
+                          }`}>
+                            {cat.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
                   {errors.category && (
-                    <p className="text-pw-rose text-xs mt-1">{errors.category.message}</p>
+                    <p className="text-pw-rose text-xs mt-1.5">{errors.category.message}</p>
                   )}
                 </div>
 

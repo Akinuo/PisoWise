@@ -14,6 +14,7 @@ import {
   HiShieldCheck, HiSparkles, HiCreditCard, HiChevronRight,
   HiArrowsRightLeft, HiAcademicCap, HiChartBar,
 } from 'react-icons/hi2';
+import CategoryIcon from '../components/common/CategoryIcon';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
@@ -87,7 +88,7 @@ export default function Dashboard() {
 
   const getCatLabel = (id, type) => {
     const cats = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
-    return cats.find(c => c.id === id) || { label: id, icon: '📦' };
+    return cats.find(c => c.id === id) || { id, label: id, color: '#6B7280' };
   };
 
   const firstName = profile?.displayName?.split(' ')[0] || 'Kaibigan';
@@ -329,10 +330,10 @@ export default function Dashboard() {
                     <div key={tx.id}
                       className={`flex items-center gap-3 px-4 py-3.5 ${i < recentTxs.length - 1 ? 'border-b border-white/[0.045]' : ''}`}>
                       <div
-                        className="icon-box-sm flex-shrink-0 text-base"
-                        style={{ background: tx.type === 'income' ? 'rgba(16,185,129,0.10)' : 'rgba(244,63,94,0.10)' }}
+                        className="icon-box-sm flex-shrink-0 flex items-center justify-center"
+                        style={{ background: `${cat.color}1e` }}
                       >
-                        {cat.icon}
+                        <CategoryIcon id={tx.category} color={cat.color} size={17} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm font-medium truncate">{tx.description || cat.label}</p>
