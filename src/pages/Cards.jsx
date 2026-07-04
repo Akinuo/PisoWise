@@ -108,20 +108,25 @@ function StatusPill({ children, tone = 'default', icon: Icon }) {
 
 /* ── CardActionButton ──────────────────────────────────────────────────────── */
 function CardActionButton({ icon: Icon, label, hint, onClick, active, danger, disabled }) {
-  const base = 'group relative flex flex-col items-center justify-center gap-2 rounded-2xl border p-3.5 transition-all duration-200 cursor-pointer min-h-[76px]';
+  const base = 'group relative flex flex-col items-center justify-center gap-1.5 rounded-2xl border transition-all duration-200 cursor-pointer';
   const state = danger
-    ? 'border-pw-rose/20 bg-pw-rose-dim text-pw-rose hover:border-pw-rose/40 hover:bg-pw-rose/15'
+    ? 'border-pw-rose/25 bg-pw-rose-dim text-pw-rose hover:border-pw-rose/45 hover:bg-pw-rose/18 active:scale-95'
     : active
-    ? 'border-pw-gold/30 bg-pw-gold-dim text-pw-gold'
-    : 'border-white/[0.07] bg-white/[0.035] text-pw-muted hover:border-white/15 hover:text-white hover:bg-white/[0.06]';
+    ? 'border-pw-gold/35 bg-pw-gold-dim text-pw-gold active:scale-95'
+    : 'border-white/[0.08] bg-white/[0.04] text-white/55 hover:border-white/18 hover:text-white hover:bg-white/[0.07] active:scale-95';
 
   return (
     <button
       type="button" onClick={onClick} disabled={disabled} title={hint}
-      className={`${base} ${state} disabled:opacity-40 disabled:cursor-not-allowed`}
+      className={`${base} ${state} disabled:opacity-35 disabled:cursor-not-allowed disabled:active:scale-100`}
+      style={{ padding: '12px 8px 10px', minHeight: 68 }}
     >
-      <Icon className="w-5 h-5 transition-transform group-hover:scale-105" />
-      <span className="text-[11px] font-semibold tracking-tight leading-none">{label}</span>
+      <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 ${
+        active ? 'bg-pw-gold/15' : danger ? 'bg-pw-rose/10' : 'bg-white/[0.06] group-hover:bg-white/[0.10]'
+      }`}>
+        <Icon className="w-4 h-4 transition-transform group-hover:scale-110 group-active:scale-95" />
+      </div>
+      <span className="text-[10px] font-semibold tracking-tight leading-none text-center px-0.5">{label}</span>
     </button>
   );
 }
@@ -146,81 +151,85 @@ function CreditCardVisual({ card, flipped = false }) {
       >
         {/* ── Front ── */}
         <div
-          className="card-shine absolute inset-0 overflow-hidden rounded-3xl text-white"
+          className="card-shine absolute inset-0 overflow-hidden rounded-3xl text-white flex flex-col justify-between"
           style={{
             background: scheme.gradient,
-            boxShadow: '0 28px 72px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.18)',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.22)',
             backfaceVisibility: 'hidden',
-            border: '1px solid rgba(255,255,255,0.12)',
+            border: '1px solid rgba(255,255,255,0.14)',
+            padding: '18px 20px 16px',
           }}
         >
-          {/* Grid texture */}
-          <div className="absolute inset-0 opacity-[0.08]"
-            style={{
-              backgroundImage:
-                'repeating-linear-gradient(0deg, rgba(255,255,255,0.4) 0px, transparent 1px, transparent 24px, rgba(255,255,255,0.4) 24px), repeating-linear-gradient(90deg, rgba(255,255,255,0.4) 0px, transparent 1px, transparent 24px, rgba(255,255,255,0.4) 24px)',
-            }} />
-          {/* Shine sweep */}
-          <div className="absolute inset-0 opacity-20"
-            style={{ background: 'linear-gradient(118deg, transparent 38%, rgba(255,255,255,0.22) 50%, transparent 62%)' }} />
+          {/* Diagonal shine overlay */}
+          <div className="absolute inset-0 pointer-events-none"
+            style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.10) 0%, transparent 50%, rgba(0,0,0,0.08) 100%)' }} />
+          {/* Subtle dot texture */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.06]"
+            style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.8) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
 
-          {/* Header row */}
-          <div className="relative z-10 flex items-start justify-between p-5">
+          {/* ── Top row: brand + status ── */}
+          <div className="relative z-10 flex items-start justify-between">
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.28em] text-white/50 mb-0.5">PisoWise</p>
-              <p className="text-xs font-semibold text-white/80">{type.label}</p>
+              <p className="text-[8px] font-bold uppercase tracking-[0.3em] text-white/50 mb-0.5">PisoWise</p>
+              <p className="text-[11px] font-semibold text-white/85">{type.label}</p>
             </div>
             <StatusPill tone={status.tone} icon={status.icon}>{status.label}</StatusPill>
           </div>
 
-          {/* EMV chip */}
-          <div className="absolute left-5 top-[30%] z-10">
-            <div className="w-10 h-7 rounded-lg overflow-hidden border border-yellow-600/30"
-              style={{ background: 'linear-gradient(135deg, #f6e27a 0%, #d4a832 40%, #f6e27a 70%, #c8961e 100%)' }}>
+          {/* ── Middle row: chip + NFC ── */}
+          <div className="relative z-10 flex items-center justify-between" style={{ marginTop: 2 }}>
+            {/* EMV chip */}
+            <div className="w-9 h-[26px] rounded-md overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, #f6e27a 0%, #d4a832 35%, #f6e27a 65%, #c8961e 100%)',
+                border: '1px solid rgba(180,120,0,0.35)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4)',
+              }}>
               <div className="w-full h-full"
                 style={{
-                  backgroundImage: 'linear-gradient(90deg, transparent 47%, rgba(120,80,0,0.25) 48% 52%, transparent 53%), repeating-linear-gradient(0deg, rgba(120,80,0,0.18) 0 1px, transparent 1px 5px)',
-                  borderRadius: 'inherit',
+                  backgroundImage: 'linear-gradient(90deg, transparent 45%, rgba(120,80,0,0.22) 46% 54%, transparent 55%), repeating-linear-gradient(0deg, rgba(120,80,0,0.15) 0 1px, transparent 1px 5px)',
                 }} />
+            </div>
+            {/* NFC symbol */}
+            <div className="flex items-center gap-[3px] opacity-60">
+              {[10, 14, 18].map(h => (
+                <div key={h} className="rounded-full border border-white/70"
+                  style={{ width: 2, height: h, background: 'transparent' }} />
+              ))}
             </div>
           </div>
 
-          {/* NFC ring */}
-          <div className="absolute right-5 top-[32%] z-10 w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ border: '1.5px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.06)' }}>
-            <div className="w-5 h-5 rounded-full"
-              style={{ border: '2px solid rgba(255,255,255,0.55)' }} />
-          </div>
-
-          {/* Card number */}
-          <div className="absolute bottom-[4.8rem] left-5 right-5 z-10">
-            <p className="font-mono text-base font-bold tracking-[0.18em] text-white/95">
+          {/* ── Card number ── */}
+          <div className="relative z-10">
+            <p className="font-mono font-bold text-white/95 tracking-[0.22em]"
+              style={{ fontSize: 15, letterSpacing: '0.2em', textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>
               {maskCardNumber(card?.lastFour || '0000')}
             </p>
           </div>
 
-          {/* Bottom row */}
-          <div className="absolute bottom-4 left-5 right-5 z-10 flex items-end justify-between">
-            <div>
-              <p className="text-[8px] font-bold uppercase tracking-[0.24em] text-white/45 mb-0.5">Card Name</p>
-              <p className="text-sm font-bold text-white truncate max-w-[140px]">{card?.nickname || 'My Card'}</p>
+          {/* ── Bottom row: name + ends ── */}
+          <div className="relative z-10 flex items-end justify-between">
+            <div style={{ maxWidth: '60%' }}>
+              <p className="text-[7px] font-bold uppercase tracking-[0.25em] text-white/45 mb-0.5">Card Name</p>
+              <p className="text-sm font-bold text-white leading-tight truncate">{card?.nickname || 'My Card'}</p>
             </div>
             <div className="text-right">
-              <p className="text-[8px] font-bold uppercase tracking-[0.24em] text-white/45 mb-0.5">Ends</p>
+              <p className="text-[7px] font-bold uppercase tracking-[0.25em] text-white/45 mb-0.5">Ends</p>
               <p className="font-mono text-sm font-bold text-white">{card?.lastFour || '0000'}</p>
             </div>
           </div>
 
-          {/* Card type SVG watermark bottom-right */}
-          <div className="absolute bottom-14 right-4 z-10 opacity-30">
-            <CardTypeIcon typeId={card?.cardType} size={22} color="#ffffff" />
+          {/* Card type watermark — top-right corner, behind header */}
+          <div className="absolute top-12 right-4 z-0 opacity-[0.12]">
+            <CardTypeIcon typeId={card?.cardType} size={44} color="#ffffff" />
           </div>
 
           {/* Frozen overlay */}
           {card?.isFrozen && (
             <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl"
-              style={{ background: 'rgba(8,14,31,0.62)', backdropFilter: 'blur(3px)' }}>
-              <div className="flex items-center gap-2 rounded-2xl border border-pw-rose/30 bg-pw-rose-dim px-4 py-2">
+              style={{ background: 'rgba(8,14,31,0.65)', backdropFilter: 'blur(4px)' }}>
+              <div className="flex items-center gap-2 rounded-2xl border border-pw-rose/35 bg-pw-rose-dim px-4 py-2.5"
+                style={{ boxShadow: '0 0 24px rgba(244,63,94,0.2)' }}>
                 <HiLockClosed className="w-4 h-4 text-pw-rose" />
                 <span className="text-sm font-bold text-pw-rose">Paused</span>
               </div>
@@ -233,30 +242,30 @@ function CreditCardVisual({ card, flipped = false }) {
           className="absolute inset-0 overflow-hidden rounded-3xl text-white"
           style={{
             background: scheme.gradient,
-            boxShadow: '0 28px 72px rgba(0,0,0,0.55)',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
             backfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
-            border: '1px solid rgba(255,255,255,0.12)',
+            border: '1px solid rgba(255,255,255,0.14)',
           }}
         >
-          <div className="absolute inset-0" style={{ background: 'rgba(8,14,31,0.38)' }} />
+          <div className="absolute inset-0" style={{ background: 'rgba(8,14,31,0.42)' }} />
           {/* Mag stripe */}
-          <div className="absolute inset-x-0 top-8 h-10 bg-black/60" />
+          <div className="absolute inset-x-0 top-7 h-11 bg-black/65" />
 
-          <div className="absolute left-5 right-5 top-[5.5rem] rounded-2xl border border-white/10 p-4"
-            style={{ background: 'rgba(255,255,255,0.10)' }}>
-            <div className="flex items-center justify-between mb-2.5">
-              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/45">Stored Safely</p>
-              <HiShieldCheck className="w-4 h-4 text-pw-emerald" />
+          <div className="absolute left-5 right-5 top-[5.2rem] rounded-2xl border border-white/10 p-4"
+            style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)' }}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/50">Stored Safely</p>
+              <HiShieldCheck className="w-3.5 h-3.5 text-pw-emerald" />
             </div>
-            <div className="grid grid-cols-3 gap-3 text-xs">
+            <div className="grid grid-cols-3 gap-3">
               {[
                 { label: 'Last 4', value: card?.lastFour || '0000' },
                 { label: 'Type',   value: type.label },
-                { label: 'CVV',    value: 'Not saved' },
+                { label: 'CVV',    value: 'Hidden' },
               ].map(({ label, value }) => (
                 <div key={label}>
-                  <p className="text-white/40 text-[9px] mb-0.5">{label}</p>
+                  <p className="text-white/40 text-[8px] font-semibold uppercase tracking-wide mb-1">{label}</p>
                   <p className="font-mono font-bold text-white text-xs truncate">{value}</p>
                 </div>
               ))}
@@ -264,8 +273,8 @@ function CreditCardVisual({ card, flipped = false }) {
           </div>
 
           <div className="absolute bottom-4 left-5 right-5">
-            <p className="text-[10px] leading-relaxed text-white/55">
-              PisoWise never stores full card numbers, CVV, or expiry dates.
+            <p className="text-[10px] leading-relaxed text-white/50">
+              Full card numbers, CVV, and expiry dates are never stored.
             </p>
           </div>
         </div>

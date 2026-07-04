@@ -155,16 +155,18 @@ export default function OTPModal({ isOpen, onClose, onVerified, purpose = 'add a
             animate={{ opacity: 1, scale: 1,    y: 0  }}
             exit={{   opacity: 0, scale: 0.93, y: 20  }}
             transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-            className="fixed inset-x-4 bottom-4 z-50 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[400px]"
+            className="fixed inset-x-4 z-50 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[400px]"
+            style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}
             onClick={e => e.stopPropagation()}
           >
             <div
-              className="relative rounded-3xl p-6 overflow-hidden"
+              className="relative rounded-3xl overflow-hidden"
               style={{
-                background: 'rgba(10,18,35,0.97)',
-                backdropFilter: 'blur(28px)',
-                border: '1px solid rgba(255,255,255,0.09)',
-                boxShadow: '0 32px 80px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.07)',
+                background: 'rgba(10,18,35,0.98)',
+                backdropFilter: 'blur(32px)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                boxShadow: '0 32px 80px rgba(0,0,0,0.70), 0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)',
+                padding: '24px 24px 28px',
               }}
             >
               {/* Ambient glow */}
@@ -209,17 +211,18 @@ export default function OTPModal({ isOpen, onClose, onVerified, purpose = 'add a
                       </p>
                     </div>
 
-                    <button onClick={sendOTP} disabled={loading} className="btn-primary w-full">
+                    <button onClick={sendOTP} disabled={loading} className="btn-primary w-full"
+                      style={{ paddingTop: 14, paddingBottom: 14, fontSize: 15, borderRadius: 16 }}>
                       {loading ? (
                         <span className="flex items-center justify-center gap-2">
                           <span className="w-4 h-4 rounded-full border-2 border-pw-navy border-t-transparent animate-spin" />
                           Sending…
                         </span>
                       ) : (
-                        <>
+                        <span className="flex items-center justify-center gap-2">
                           <EnvelopeIcon size={15} color="#080E1F" />
                           Send Verification Code
-                        </>
+                        </span>
                       )}
                     </button>
                   </motion.div>
