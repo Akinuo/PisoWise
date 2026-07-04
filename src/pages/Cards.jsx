@@ -1,5 +1,4 @@
 // src/pages/Cards.jsx
-//bading
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,179 +12,260 @@ import OTPModal from '../components/auth/OTPModal';
 import { Timestamp } from '../services/firebase';
 import toast from 'react-hot-toast';
 import {
-  HiPlus,
-  HiTrash,
-  HiPencil,
-  HiCreditCard,
-  HiShieldCheck,
-  HiEye,
-  HiEyeSlash,
-  HiLockClosed,
-  HiLockOpen,
-  HiStar,
-  HiClipboardDocument,
-  HiArrowsRightLeft,
-  HiCheckCircle,
-  HiPauseCircle,
-  HiPlayCircle,
-  HiWallet,
+  HiPlus, HiTrash, HiPencil, HiCreditCard, HiShieldCheck,
+  HiEye, HiEyeSlash, HiLockClosed, HiLockOpen, HiStar,
+  HiClipboardDocument, HiArrowsRightLeft, HiCheckCircle,
+  HiPauseCircle, HiPlayCircle, HiWallet, HiXMark, HiChevronRight,
 } from 'react-icons/hi2';
 
-const cardTypeFor = (card) =>
-  CARD_TYPES.find((t) => t.id === card?.cardType) || CARD_TYPES[CARD_TYPES.length - 1];
-
-const schemeFor = (card) =>
-  CARD_COLOR_SCHEMES.find((s) => s.id === card?.colorScheme) || CARD_COLOR_SCHEMES[0];
-
-function StatusPill({ children, tone = 'default', icon: Icon }) {
-  const tones = {
-    default: 'border-white/10 bg-white/10 text-white/75',
-    gold: 'border-pw-gold/25 bg-pw-gold-dim text-pw-gold',
-    emerald: 'border-pw-emerald/25 bg-pw-emerald-dim text-pw-emerald',
-    rose: 'border-pw-rose/25 bg-pw-rose-dim text-pw-rose',
+/* ── SVG icon map — replaces all emojis ──────────────────────────────────── */
+function CardTypeIcon({ typeId, size = 20, color = '#ffffff' }) {
+  const icons = {
+    visa: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect x="2" y="5" width="20" height="14" rx="3" stroke={color} strokeWidth="1.5"/>
+        <path d="M7 12l2 3 1-2 1 2 2-3" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M15 9h2.5" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+        <path d="M2 9h20" stroke={color} strokeWidth="1" opacity="0.4"/>
+      </svg>
+    ),
+    mastercard: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect x="2" y="5" width="20" height="14" rx="3" stroke={color} strokeWidth="1.5"/>
+        <circle cx="9.5" cy="12" r="3.5" stroke={color} strokeWidth="1.5"/>
+        <circle cx="14.5" cy="12" r="3.5" stroke={color} strokeWidth="1.5"/>
+        <path d="M12 9.3a3.5 3.5 0 000 5.4" stroke={color} strokeWidth="1" opacity="0.5"/>
+      </svg>
+    ),
+    gcash: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect x="5" y="2" width="14" height="20" rx="3" stroke={color} strokeWidth="1.5"/>
+        <path d="M9 9h4a2 2 0 010 4H9v-4z" stroke={color} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="12" cy="16.5" r="1" fill={color}/>
+        <path d="M9 6h6" stroke={color} strokeWidth="1.3" strokeLinecap="round" opacity="0.5"/>
+      </svg>
+    ),
+    maya: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect x="5" y="2" width="14" height="20" rx="3" stroke={color} strokeWidth="1.5"/>
+        <path d="M9 8l3 4 3-4" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M12 12v4" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+        <path d="M9 17h6" stroke={color} strokeWidth="1.3" strokeLinecap="round" opacity="0.5"/>
+      </svg>
+    ),
+    bdo: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M3 9l9-6 9 6v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" stroke={color} strokeWidth="1.5"/>
+        <path d="M9 20V12h6v8" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M9 12a3 3 0 000-6" stroke={color} strokeWidth="1.3" opacity="0.5"/>
+      </svg>
+    ),
+    bpi: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M3 9l9-6 9 6v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" stroke={color} strokeWidth="1.5"/>
+        <circle cx="12" cy="12" r="3" stroke={color} strokeWidth="1.5"/>
+        <path d="M12 9v2m0 4v2M9 12H7m10 0h-2" stroke={color} strokeWidth="1.3" opacity="0.6"/>
+      </svg>
+    ),
+    atm: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="6" width="18" height="13" rx="2" stroke={color} strokeWidth="1.5"/>
+        <path d="M7 9h10M7 12h4m0 0v3" stroke={color} strokeWidth="1.3" strokeLinecap="round"/>
+        <path d="M3 10h18" stroke={color} strokeWidth="1" opacity="0.3"/>
+      </svg>
+    ),
+    other: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect x="2" y="5" width="20" height="14" rx="3" stroke={color} strokeWidth="1.5"/>
+        <path d="M6 9h12M6 12h6M6 15h4" stroke={color} strokeWidth="1.3" strokeLinecap="round" opacity="0.7"/>
+        <path d="M2 9h20" stroke={color} strokeWidth="1" opacity="0.3"/>
+      </svg>
+    ),
   };
+  return icons[typeId] || icons.other;
+}
 
+/* ── Helpers ──────────────────────────────────────────────────────────────── */
+const cardTypeFor   = c => CARD_TYPES.find(t => t.id === c?.cardType) || CARD_TYPES.at(-1);
+const schemeFor     = c => CARD_COLOR_SCHEMES.find(s => s.id === c?.colorScheme) || CARD_COLOR_SCHEMES[0];
+
+/* ── StatusPill ────────────────────────────────────────────────────────────── */
+function StatusPill({ children, tone = 'default', icon: Icon }) {
+  const map = {
+    default: 'border-white/10 bg-white/10 text-white/75',
+    gold:    'border-pw-gold/25 bg-pw-gold-dim text-pw-gold',
+    emerald: 'border-pw-emerald/25 bg-pw-emerald-dim text-pw-emerald',
+    rose:    'border-pw-rose/25 bg-pw-rose-dim text-pw-rose',
+    blue:    'border-pw-blue/25 bg-pw-blue-dim text-pw-blue-light',
+  };
   return (
-    <span className={`inline-flex min-h-7 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-semibold ${tones[tone]}`}>
-      {Icon && <Icon className="h-3.5 w-3.5" />}
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${map[tone]}`}>
+      {Icon && <Icon className="h-3 w-3" />}
       {children}
     </span>
   );
 }
 
-function CardActionButton({ icon: Icon, label, hint, onClick, active = false, danger = false, disabled = false }) {
-  const stateClass = danger
-    ? 'border-pw-rose/25 bg-pw-rose-dim text-pw-rose hover:border-pw-rose/45'
+/* ── CardActionButton ──────────────────────────────────────────────────────── */
+function CardActionButton({ icon: Icon, label, hint, onClick, active, danger, disabled }) {
+  const base = 'group relative flex flex-col items-center justify-center gap-2 rounded-2xl border p-3.5 transition-all duration-200 cursor-pointer min-h-[76px]';
+  const state = danger
+    ? 'border-pw-rose/20 bg-pw-rose-dim text-pw-rose hover:border-pw-rose/40 hover:bg-pw-rose/15'
     : active
-      ? 'border-pw-gold/35 bg-pw-gold-dim text-pw-gold'
-      : 'border-white/10 bg-white/[0.05] text-white hover:border-white/20 hover:bg-white/[0.08]';
+    ? 'border-pw-gold/30 bg-pw-gold-dim text-pw-gold'
+    : 'border-white/[0.07] bg-white/[0.035] text-pw-muted hover:border-white/15 hover:text-white hover:bg-white/[0.06]';
 
   return (
     <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={hint || label}
-      className={`group flex min-h-[74px] flex-col items-start justify-between rounded-2xl border p-3 text-left transition-all disabled:cursor-not-allowed disabled:opacity-50 ${stateClass}`}
+      type="button" onClick={onClick} disabled={disabled} title={hint}
+      className={`${base} ${state} disabled:opacity-40 disabled:cursor-not-allowed`}
     >
-      <Icon className="h-5 w-5 transition-transform group-hover:scale-105" />
-      <span className="text-xs font-semibold leading-tight">{label}</span>
+      <Icon className="w-5 h-5 transition-transform group-hover:scale-105" />
+      <span className="text-[11px] font-semibold tracking-tight leading-none">{label}</span>
     </button>
   );
 }
 
+/* ── CreditCardVisual ─────────────────────────────────────────────────────── */
 function CreditCardVisual({ card, flipped = false }) {
   const scheme = schemeFor(card);
-  const type = cardTypeFor(card);
+  const type   = cardTypeFor(card);
   const status = card?.isFrozen
-    ? { label: 'Paused', tone: 'rose', icon: HiLockClosed }
+    ? { label: 'Paused',   tone: 'rose',    icon: HiLockClosed }
     : card?.isPrimary
-      ? { label: 'Primary', tone: 'gold', icon: HiStar }
-      : { label: 'Verified', tone: 'emerald', icon: HiCheckCircle };
+    ? { label: 'Primary',  tone: 'gold',    icon: HiStar }
+    : { label: 'Active',   tone: 'emerald', icon: HiCheckCircle };
 
   return (
-    <div className="relative aspect-[1.586/1] w-full select-none [perspective:1200px]">
+    <div className="relative w-full select-none" style={{ aspectRatio: '1.586 / 1', perspective: '1200px' }}>
       <motion.div
         animate={{ rotateY: flipped ? 180 : 0 }}
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-        className="absolute inset-0 [transform-style:preserve-3d]"
+        className="absolute inset-0"
         style={{ transformStyle: 'preserve-3d' }}
       >
+        {/* ── Front ── */}
         <div
-          className="card-shine absolute inset-0 overflow-hidden rounded-2xl border border-white/15 text-white shadow-card [backface-visibility:hidden]"
+          className="card-shine absolute inset-0 overflow-hidden rounded-3xl text-white"
           style={{
             background: scheme.gradient,
-            boxShadow: '0 24px 70px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.16)',
+            boxShadow: '0 28px 72px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.18)',
+            backfaceVisibility: 'hidden',
+            border: '1px solid rgba(255,255,255,0.12)',
           }}
         >
-          <div className="absolute inset-0 opacity-[0.16]"
+          {/* Grid texture */}
+          <div className="absolute inset-0 opacity-[0.08]"
             style={{
               backgroundImage:
-                'linear-gradient(115deg, transparent 0 42%, rgba(255,255,255,0.32) 42% 43%, transparent 43% 100%), repeating-linear-gradient(0deg, rgba(255,255,255,0.18) 0 1px, transparent 1px 18px)',
-            }}
-          />
+                'repeating-linear-gradient(0deg, rgba(255,255,255,0.4) 0px, transparent 1px, transparent 24px, rgba(255,255,255,0.4) 24px), repeating-linear-gradient(90deg, rgba(255,255,255,0.4) 0px, transparent 1px, transparent 24px, rgba(255,255,255,0.4) 24px)',
+            }} />
+          {/* Shine sweep */}
+          <div className="absolute inset-0 opacity-20"
+            style={{ background: 'linear-gradient(118deg, transparent 38%, rgba(255,255,255,0.22) 50%, transparent 62%)' }} />
 
+          {/* Header row */}
           <div className="relative z-10 flex items-start justify-between p-5">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/60">PisoWise</p>
-              <p className="mt-1 text-sm font-bold text-white">{type.label}</p>
+              <p className="text-[9px] font-bold uppercase tracking-[0.28em] text-white/50 mb-0.5">PisoWise</p>
+              <p className="text-xs font-semibold text-white/80">{type.label}</p>
             </div>
             <StatusPill tone={status.tone} icon={status.icon}>{status.label}</StatusPill>
           </div>
 
-          <div className="absolute left-5 top-[31%] z-10">
-            <div className="flex h-9 w-11 items-center justify-center rounded-xl border border-yellow-900/20 bg-gradient-to-br from-yellow-100 via-yellow-300 to-yellow-500 shadow-inner">
-              <div className="h-6 w-8 rounded-md border border-yellow-700/30"
+          {/* EMV chip */}
+          <div className="absolute left-5 top-[30%] z-10">
+            <div className="w-10 h-7 rounded-lg overflow-hidden border border-yellow-600/30"
+              style={{ background: 'linear-gradient(135deg, #f6e27a 0%, #d4a832 40%, #f6e27a 70%, #c8961e 100%)' }}>
+              <div className="w-full h-full"
                 style={{
-                  background:
-                    'linear-gradient(90deg, transparent 48%, rgba(120,80,0,0.28) 49% 51%, transparent 52%), repeating-linear-gradient(0deg, rgba(120,80,0,0.22) 0 1px, transparent 1px 5px)',
-                }}
-              />
+                  backgroundImage: 'linear-gradient(90deg, transparent 47%, rgba(120,80,0,0.25) 48% 52%, transparent 53%), repeating-linear-gradient(0deg, rgba(120,80,0,0.18) 0 1px, transparent 1px 5px)',
+                  borderRadius: 'inherit',
+                }} />
             </div>
           </div>
 
-          <div className="absolute right-5 top-[34%] z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10">
-            <div className="h-5 w-5 rounded-full border-2 border-white/70" />
+          {/* NFC ring */}
+          <div className="absolute right-5 top-[32%] z-10 w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ border: '1.5px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.06)' }}>
+            <div className="w-5 h-5 rounded-full"
+              style={{ border: '2px solid rgba(255,255,255,0.55)' }} />
           </div>
 
-          <div className="absolute bottom-[4.7rem] left-5 right-5 z-10">
-            <p className="font-mono text-[15px] font-bold tracking-[0.12em] text-white/95 min-[380px]:text-base sm:text-lg">
+          {/* Card number */}
+          <div className="absolute bottom-[4.8rem] left-5 right-5 z-10">
+            <p className="font-mono text-base font-bold tracking-[0.18em] text-white/95">
               {maskCardNumber(card?.lastFour || '0000')}
             </p>
           </div>
 
-          <div className="absolute bottom-5 left-5 right-5 z-10 flex items-end justify-between gap-4">
-            <div className="min-w-0">
-              <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.22em] text-white/50">Card Name</p>
-              <p className="truncate text-sm font-bold text-white sm:text-base">{card?.nickname || 'My Card'}</p>
+          {/* Bottom row */}
+          <div className="absolute bottom-4 left-5 right-5 z-10 flex items-end justify-between">
+            <div>
+              <p className="text-[8px] font-bold uppercase tracking-[0.24em] text-white/45 mb-0.5">Card Name</p>
+              <p className="text-sm font-bold text-white truncate max-w-[140px]">{card?.nickname || 'My Card'}</p>
             </div>
-            <div className="shrink-0 text-right">
-              <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.22em] text-white/50">Ends</p>
+            <div className="text-right">
+              <p className="text-[8px] font-bold uppercase tracking-[0.24em] text-white/45 mb-0.5">Ends</p>
               <p className="font-mono text-sm font-bold text-white">{card?.lastFour || '0000'}</p>
             </div>
           </div>
 
+          {/* Card type SVG watermark bottom-right */}
+          <div className="absolute bottom-14 right-4 z-10 opacity-30">
+            <CardTypeIcon typeId={card?.cardType} size={22} color="#ffffff" />
+          </div>
+
+          {/* Frozen overlay */}
           {card?.isFrozen && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center bg-pw-navy/55 backdrop-blur-[2px]">
-              <div className="rounded-2xl border border-pw-rose/30 bg-pw-rose-dim px-4 py-2 text-sm font-bold text-pw-rose">
-                Paused in PisoWise
+            <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl"
+              style={{ background: 'rgba(8,14,31,0.62)', backdropFilter: 'blur(3px)' }}>
+              <div className="flex items-center gap-2 rounded-2xl border border-pw-rose/30 bg-pw-rose-dim px-4 py-2">
+                <HiLockClosed className="w-4 h-4 text-pw-rose" />
+                <span className="text-sm font-bold text-pw-rose">Paused</span>
               </div>
             </div>
           )}
         </div>
 
+        {/* ── Back ── */}
         <div
-          className="absolute inset-0 overflow-hidden rounded-2xl border border-white/15 text-white shadow-card [backface-visibility:hidden] [transform:rotateY(180deg)]"
+          className="absolute inset-0 overflow-hidden rounded-3xl text-white"
           style={{
             background: scheme.gradient,
-            boxShadow: '0 24px 70px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.16)',
+            boxShadow: '0 28px 72px rgba(0,0,0,0.55)',
+            backfaceVisibility: 'hidden',
+            transform: 'rotateY(180deg)',
+            border: '1px solid rgba(255,255,255,0.12)',
           }}
         >
-          <div className="absolute inset-0 bg-pw-navy/30" />
-          <div className="absolute inset-x-0 top-8 h-11 bg-black/55" />
-          <div className="absolute left-5 right-5 top-[5.8rem] rounded-2xl border border-white/10 bg-white/[0.12] p-3">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50">Stored Safely</p>
-              <HiShieldCheck className="h-4 w-4 text-pw-emerald" />
+          <div className="absolute inset-0" style={{ background: 'rgba(8,14,31,0.38)' }} />
+          {/* Mag stripe */}
+          <div className="absolute inset-x-0 top-8 h-10 bg-black/60" />
+
+          <div className="absolute left-5 right-5 top-[5.5rem] rounded-2xl border border-white/10 p-4"
+            style={{ background: 'rgba(255,255,255,0.10)' }}>
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/45">Stored Safely</p>
+              <HiShieldCheck className="w-4 h-4 text-pw-emerald" />
             </div>
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <div>
-                <p className="text-white/45">Last 4</p>
-                <p className="mt-0.5 font-mono font-bold">{card?.lastFour || '0000'}</p>
-              </div>
-              <div>
-                <p className="text-white/45">Type</p>
-                <p className="mt-0.5 truncate font-bold">{type.label}</p>
-              </div>
-              <div>
-                <p className="text-white/45">CVV</p>
-                <p className="mt-0.5 font-bold">Not saved</p>
-              </div>
+            <div className="grid grid-cols-3 gap-3 text-xs">
+              {[
+                { label: 'Last 4', value: card?.lastFour || '0000' },
+                { label: 'Type',   value: type.label },
+                { label: 'CVV',    value: 'Not saved' },
+              ].map(({ label, value }) => (
+                <div key={label}>
+                  <p className="text-white/40 text-[9px] mb-0.5">{label}</p>
+                  <p className="font-mono font-bold text-white text-xs truncate">{value}</p>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="absolute bottom-5 left-5 right-5">
-            <p className="text-xs leading-relaxed text-white/65">
-              PisoWise keeps only non-sensitive card labels and the last four digits.
+
+          <div className="absolute bottom-4 left-5 right-5">
+            <p className="text-[10px] leading-relaxed text-white/55">
+              PisoWise never stores full card numbers, CVV, or expiry dates.
             </p>
           </div>
         </div>
@@ -194,20 +274,23 @@ function CreditCardVisual({ card, flipped = false }) {
   );
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   Main Cards Page
+   ════════════════════════════════════════════════════════════════════════════ */
 export default function Cards() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const { user }    = useAuth();
+  const navigate    = useNavigate();
   const { cards, setCards, cardsLoaded, addCardLocal, updateCardLocal, removeCardLocal } = useStore();
 
-  const [showOTP, setShowOTP] = useState(false);
-  const [otpPurpose, setOtpPurpose] = useState('add a card');
+  const [showOTP,       setShowOTP]       = useState(false);
+  const [otpPurpose,    setOtpPurpose]    = useState('add a card');
   const [pendingAction, setPendingAction] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [editCard, setEditCard] = useState(null);
-  const [selectedScheme, setSelectedScheme] = useState('midnight');
+  const [showModal,     setShowModal]     = useState(false);
+  const [editCard,      setEditCard]      = useState(null);
+  const [selectedScheme,setSelectedScheme]= useState('midnight');
   const [activeCardIdx, setActiveCardIdx] = useState(0);
-  const [flipped, setFlipped] = useState(false);
-  const [busyAction, setBusyAction] = useState(null);
+  const [flipped,       setFlipped]       = useState(false);
+  const [busyAction,    setBusyAction]    = useState(null);
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm({
     defaultValues: { cardType: 'visa', isPrimary: false },
@@ -215,40 +298,21 @@ export default function Cards() {
 
   useEffect(() => {
     if (!user || cardsLoaded) return;
-
-    const loadCards = async () => {
-      try {
-        const c = await getCards(user.uid);
-        setCards(c);
-      } catch (error) {
-        console.error('Failed to load cards:', error);
-        setCards([]);
-      }
-    };
-
-    loadCards();
+    getCards(user.uid).then(c => setCards(c)).catch(() => setCards([]));
   }, [user, cardsLoaded, setCards]);
 
   useEffect(() => {
-    if (cards.length === 0) {
-      setActiveCardIdx(0);
-      return;
-    }
-    if (activeCardIdx >= cards.length) {
+    if (cards.length > 0 && activeCardIdx >= cards.length)
       setActiveCardIdx(cards.length - 1);
-    }
   }, [cards.length, activeCardIdx]);
 
-  const activeCard = cards.length > 0 ? cards[activeCardIdx] || cards[0] : null;
-  const activeType = useMemo(() => cardTypeFor(activeCard), [activeCard]);
+  const activeCard   = cards.length > 0 ? (cards[activeCardIdx] ?? cards[0]) : null;
+  const activeType   = useMemo(() => cardTypeFor(activeCard), [activeCard]);
   const activeScheme = useMemo(() => schemeFor(activeCard), [activeCard]);
-  const primaryCard = cards.find((card) => card.isPrimary);
-  const frozenCount = cards.filter((card) => card.isFrozen).length;
+  const primaryCard  = cards.find(c => c.isPrimary);
+  const frozenCount  = cards.filter(c => c.isFrozen).length;
 
-  const selectCard = (index) => {
-    setActiveCardIdx(index);
-    setFlipped(false);
-  };
+  const selectCard = (i) => { setActiveCardIdx(i); setFlipped(false); };
 
   const initiateAdd = () => {
     setPendingAction('add');
@@ -267,9 +331,9 @@ export default function Cards() {
   const onOTPVerified = () => {
     setShowOTP(false);
     if (pendingAction === 'edit' && editCard) {
-      setValue('lastFour', editCard.lastFour);
-      setValue('cardType', editCard.cardType || 'visa');
-      setValue('nickname', editCard.nickname || '');
+      setValue('lastFour',  editCard.lastFour);
+      setValue('cardType',  editCard.cardType || 'visa');
+      setValue('nickname',  editCard.nickname || '');
       setValue('isPrimary', Boolean(editCard.isPrimary));
       setSelectedScheme(editCard.colorScheme || 'midnight');
     } else {
@@ -281,39 +345,28 @@ export default function Cards() {
   };
 
   const clearPrimaryCards = async (exceptId = null) => {
-    const updates = cards
-      .filter((card) => card.id !== exceptId && card.isPrimary)
-      .map(async (card) => {
-        await updateCard(card.id, { isPrimary: false });
-        updateCardLocal(card.id, { isPrimary: false });
-      });
-    await Promise.all(updates);
+    await Promise.all(
+      cards
+        .filter(c => c.id !== exceptId && c.isPrimary)
+        .map(async c => { await updateCard(c.id, { isPrimary: false }); updateCardLocal(c.id, { isPrimary: false }); })
+    );
   };
 
   const onSubmit = async (data) => {
     if (!user) return;
-    if (data.fullNumber || data.cvv || data.expiryDate) {
-      toast.error('Security error: do not enter full card details.');
-      return;
-    }
-
     const lastFour = String(data.lastFour).replace(/\D/g, '');
-    if (lastFour.length !== 4) {
-      toast.error('Ilagay ang huling 4 na digit lamang.');
-      return;
-    }
+    if (lastFour.length !== 4) { toast.error('Ilagay ang huling 4 na digit lamang.'); return; }
 
     try {
       const shouldBePrimary = cards.length === 0 || Boolean(data.isPrimary);
       const payload = {
         lastFour,
         cardType: data.cardType,
-        nickname: data.nickname?.trim() || `My ${CARD_TYPES.find((t) => t.id === data.cardType)?.label || 'Card'}`,
+        nickname: data.nickname?.trim() || `My ${CARD_TYPES.find(t => t.id === data.cardType)?.label || 'Card'}`,
         colorScheme: selectedScheme,
         isPrimary: shouldBePrimary,
         isFrozen: editCard?.isFrozen || false,
       };
-
       if (shouldBePrimary) await clearPrimaryCards(editCard?.id || null);
 
       if (editCard) {
@@ -322,23 +375,16 @@ export default function Cards() {
         toast.success('Card na-update!');
       } else {
         const ref = await addCard(user.uid, { ...payload, verified: true });
-        addCardLocal({
-          id: ref.id,
-          userId: user.uid,
-          ...payload,
-          verified: true,
-          createdAt: Timestamp.now(),
-        });
+        addCardLocal({ id: ref.id, userId: user.uid, ...payload, verified: true, createdAt: Timestamp.now() });
         setActiveCardIdx(cards.length);
         toast.success('Card naidagdag!');
       }
-
       setShowModal(false);
       reset({ lastFour: '', cardType: 'visa', nickname: '', isPrimary: false });
       setEditCard(null);
       setFlipped(false);
     } catch (e) {
-      console.error('Card save error:', e);
+      console.error(e);
       toast.error('Hindi na-save. Subukan ulit.');
     }
   };
@@ -347,470 +393,449 @@ export default function Cards() {
     if (!card || !confirm('Tanggalin ang card na ito?')) return;
     setBusyAction(`delete-${card.id}`);
     try {
-      const cardIndex = cards.findIndex((item) => item.id === card.id);
-      const remaining = cards.filter((item) => item.id !== card.id);
-      const nextPrimary = card.isPrimary ? remaining[0] : null;
-
+      const idx       = cards.findIndex(c => c.id === card.id);
+      const remaining = cards.filter(c => c.id !== card.id);
       await deleteCard(card.id);
       removeCardLocal(card.id);
-
-      setActiveCardIdx((current) => {
-        if (cardIndex === -1) return current;
-        if (remaining.length === 0) return 0;
-        if (cardIndex < current) return current - 1;
-        if (cardIndex === current && current >= remaining.length) return remaining.length - 1;
-        return current;
+      setActiveCardIdx(curr => {
+        if (!remaining.length) return 0;
+        if (idx < curr) return curr - 1;
+        if (idx === curr && curr >= remaining.length) return remaining.length - 1;
+        return curr;
       });
-
-      if (nextPrimary) {
-        await updateCard(nextPrimary.id, { isPrimary: true });
-        updateCardLocal(nextPrimary.id, { isPrimary: true });
+      if (card.isPrimary && remaining[0]) {
+        await updateCard(remaining[0].id, { isPrimary: true });
+        updateCardLocal(remaining[0].id, { isPrimary: true });
       }
-
       setFlipped(false);
       toast.success('Card natanggal.');
-    } catch {
-      toast.error('Hindi natanggal.');
-    } finally {
-      setBusyAction(null);
-    }
+    } catch { toast.error('Hindi natanggal.'); }
+    finally { setBusyAction(null); }
   };
 
   const handleToggleFrozen = async (card) => {
     if (!card) return;
-    const nextValue = !card.isFrozen;
+    const next = !card.isFrozen;
     setBusyAction(`freeze-${card.id}`);
     try {
-      await updateCard(card.id, { isFrozen: nextValue });
-      updateCardLocal(card.id, { isFrozen: nextValue });
-      toast.success(nextValue ? 'Card paused in PisoWise.' : 'Card active again.');
-    } catch {
-      toast.error('Hindi na-update ang status.');
-    } finally {
-      setBusyAction(null);
-    }
+      await updateCard(card.id, { isFrozen: next });
+      updateCardLocal(card.id, { isFrozen: next });
+      toast.success(next ? 'Card paused.' : 'Card activated.');
+    } catch { toast.error('Hindi na-update.'); }
+    finally { setBusyAction(null); }
   };
 
   const handleSetPrimary = async (card) => {
     if (!card || card.isPrimary) return;
     setBusyAction(`primary-${card.id}`);
     try {
-      await Promise.all(cards.map((item) => updateCard(item.id, { isPrimary: item.id === card.id })));
-      cards.forEach((item) => updateCardLocal(item.id, { isPrimary: item.id === card.id }));
+      await Promise.all(cards.map(c => updateCard(c.id, { isPrimary: c.id === card.id })));
+      cards.forEach(c => updateCardLocal(c.id, { isPrimary: c.id === card.id }));
       toast.success('Primary card updated.');
-    } catch {
-      toast.error('Hindi na-set as primary.');
-    } finally {
-      setBusyAction(null);
-    }
+    } catch { toast.error('Hindi na-set as primary.'); }
+    finally { setBusyAction(null); }
   };
 
   const handleCopy = async (card) => {
     if (!card) return;
     try {
       await navigator.clipboard.writeText(maskCardNumber(card.lastFour));
-      toast.success('Masked card copied.');
-    } catch {
-      toast.error('Clipboard is not available.');
-    }
+      toast.success('Masked number copied.');
+    } catch { toast.error('Clipboard unavailable.'); }
   };
 
-  const handleRecordSpend = () => {
-    navigate('/transactions?tab=expense');
-  };
-
+  /* ── Render ── */
   return (
     <div className="page">
       <div className="page-content">
-        <div className="mx-auto w-full max-w-6xl space-y-5">
-          <div className="flex items-start justify-between gap-4 pt-2">
-            <div className="min-w-0">
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-pw-gold">
-                <HiWallet className="h-3.5 w-3.5" />
-                Secure Wallet
+        <div className="space-y-5 mx-auto w-full max-w-lg">
+
+          {/* ── Header ── */}
+          <div className="flex items-start justify-between pt-2">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-5 h-5 rounded-md flex items-center justify-center"
+                  style={{ background: 'rgba(245,183,49,0.15)' }}>
+                  <HiWallet className="w-3 h-3 text-pw-gold" />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-pw-gold">Secure Wallet</span>
               </div>
-              <h1 className="font-display text-3xl font-bold text-white sm:text-4xl">Card Wallet</h1>
-              <p className="mt-1 text-sm text-pw-muted">
-                {cards.length} card{cards.length !== 1 ? 's' : ''} saved
-                {primaryCard ? ` · Primary ends in ${primaryCard.lastFour}` : ''}
+              <h1 className="font-display text-3xl text-white leading-none">Card Wallet</h1>
+              <p className="text-pw-muted text-sm mt-1">
+                {cards.length} {cards.length === 1 ? 'card' : 'cards'} saved
+                {primaryCard ? ` · Primary ···· ${primaryCard.lastFour}` : ''}
               </p>
             </div>
-            <motion.button
-              whileTap={{ scale: 0.94 }}
-              onClick={initiateAdd}
-              className="btn-primary shrink-0 px-4 py-2.5"
-            >
-              <HiPlus className="h-4 w-4" />
-              <span className="hidden sm:inline">Dagdag</span>
+            <motion.button whileTap={{ scale: 0.9 }} onClick={initiateAdd}
+              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer transition-all hover:scale-105"
+              style={{
+                background: 'linear-gradient(135deg, #F5B731 0%, #F59E0B 100%)',
+                boxShadow: '0 4px 16px rgba(245,183,49,0.35)',
+              }}>
+              <HiPlus className="w-5 h-5 text-pw-navy" style={{ strokeWidth: 2.5 }} />
             </motion.button>
           </div>
 
-          <div className="rounded-2xl border border-pw-emerald/20 bg-pw-emerald-dim p-3">
-            <div className="flex gap-3">
-              <HiShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-pw-emerald" />
-              <div>
-                <p className="text-xs font-semibold text-pw-emerald">Card privacy</p>
-                <p className="mt-1 text-xs leading-relaxed text-white/70">
-                  PisoWise saves only the card label, type, design, status, and last 4 digits. Full card numbers, CVV, and expiry dates are never collected.
-                </p>
-              </div>
+          {/* ── Privacy banner ── */}
+          <div className="glass-emerald flex items-start gap-3 p-4 rounded-2xl">
+            <HiShieldCheck className="w-4 h-4 text-pw-emerald flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-pw-emerald text-xs font-semibold mb-0.5">Card Privacy</p>
+              <p className="text-white/65 text-xs leading-relaxed">
+                PisoWise saves only the label, type, design, status, and last 4 digits. Full numbers, CVV, and expiry dates are never collected.
+              </p>
             </div>
           </div>
 
+          {/* ── Empty state ── */}
           {cards.length === 0 ? (
-            <div className="grid gap-4 rounded-[28px] border border-white/10 bg-white/[0.04] p-6 shadow-glass sm:grid-cols-[1fr_auto] sm:items-center">
-              <div>
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-pw-gold/20 bg-pw-gold-dim">
-                  <HiCreditCard className="h-6 w-6 text-pw-gold" />
-                </div>
-                <h2 className="font-display text-2xl font-bold text-white">Start your secure wallet</h2>
-                <p className="mt-2 max-w-xl text-sm leading-relaxed text-pw-muted">
-                  Add a debit card, credit card, bank card, or e-wallet label using only the last four digits.
-                </p>
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass p-8 text-center">
+              <div className="icon-box mx-auto mb-4" style={{ background: 'rgba(245,183,49,0.10)', width: 56, height: 56, borderRadius: 18 }}>
+                <HiCreditCard className="w-6 h-6 text-pw-gold" style={{ width: 24, height: 24 }} />
               </div>
-              <button onClick={initiateAdd} className="btn-primary w-full px-6 sm:w-auto">
-                <HiPlus className="h-4 w-4" />
-                Mag-dagdag ng Card
+              <h2 className="font-display text-2xl text-white mb-2">Start your secure wallet</h2>
+              <p className="text-pw-muted text-sm mb-6 leading-relaxed max-w-xs mx-auto">
+                Add a debit card, credit card, or e-wallet using only the last four digits.
+              </p>
+              <button onClick={initiateAdd} className="btn-primary w-full">
+                <HiPlus className="w-4 h-4" /> Mag-dagdag ng Card
               </button>
-            </div>
+            </motion.div>
           ) : (
-            <div className="grid gap-5 xl:grid-cols-[minmax(340px,430px)_1fr]">
-              <section className="space-y-4">
-                <AnimatePresence mode="wait">
-                  <motion.button
-                    key={activeCard?.id || activeCardIdx}
-                    type="button"
-                    onClick={() => setFlipped((value) => !value)}
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -12 }}
-                    transition={{ duration: 0.22 }}
-                    className="block w-full text-left"
-                    title={flipped ? 'Show front' : 'Show stored details'}
-                  >
-                    <CreditCardVisual card={activeCard} flipped={flipped} />
-                  </motion.button>
-                </AnimatePresence>
+            <div className="space-y-5">
 
-                {cards.length > 1 && (
-                  <div className="flex justify-center gap-2">
-                    {cards.map((card, index) => (
-                      <button
-                        key={card.id}
-                        type="button"
-                        onClick={() => selectCard(index)}
-                        aria-label={`Select card ending ${card.lastFour}`}
-                        className={`h-2 rounded-full transition-all ${
-                          index === activeCardIdx ? 'w-7 bg-pw-gold' : 'w-2 bg-white/20 hover:bg-white/35'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                )}
+              {/* ── Card visual + flip ── */}
+              <AnimatePresence mode="wait">
+                <motion.button
+                  key={activeCard?.id || activeCardIdx}
+                  type="button"
+                  onClick={() => setFlipped(v => !v)}
+                  initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.22 }}
+                  className="block w-full text-left cursor-pointer"
+                  title={flipped ? 'Show front' : 'Show stored details'}
+                >
+                  <CreditCardVisual card={activeCard} flipped={flipped} />
+                </motion.button>
+              </AnimatePresence>
 
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-                    <p className="text-[11px] text-pw-muted">Cards</p>
-                    <p className="mt-1 font-mono text-xl font-bold text-white">{cards.length}</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-                    <p className="text-[11px] text-pw-muted">Paused</p>
-                    <p className="mt-1 font-mono text-xl font-bold text-white">{frozenCount}</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-                    <p className="text-[11px] text-pw-muted">Design</p>
-                    <p className="mt-1 truncate text-sm font-bold text-white">{activeScheme.label}</p>
-                  </div>
+              {/* Flip hint */}
+              <p className="text-center text-[10px] text-pw-muted font-medium tracking-wide">
+                {flipped ? '← Tap to flip back' : 'Tap card to flip ↻'}
+              </p>
+
+              {/* Pagination dots */}
+              {cards.length > 1 && (
+                <div className="flex justify-center gap-2">
+                  {cards.map((card, i) => (
+                    <button key={card.id} onClick={() => selectCard(i)}
+                      aria-label={`Select card ending ${card.lastFour}`}
+                      className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                        i === activeCardIdx ? 'w-6 bg-pw-gold' : 'w-1.5 bg-white/20 hover:bg-white/40'
+                      }`} />
+                  ))}
                 </div>
-              </section>
+              )}
 
-              <section className="space-y-4">
-                <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-4 shadow-glass">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pw-muted">Active Card</p>
-                      <h2 className="mt-1 truncate font-display text-2xl font-bold text-white">{activeCard.nickname}</h2>
-                      <p className="mt-1 text-sm text-pw-muted">{activeType.label} · ends in {activeCard.lastFour}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {activeCard.isPrimary && <StatusPill tone="gold" icon={HiStar}>Primary</StatusPill>}
-                      {activeCard.isFrozen ? (
-                        <StatusPill tone="rose" icon={HiLockClosed}>Paused</StatusPill>
-                      ) : (
-                        <StatusPill tone="emerald" icon={HiCheckCircle}>Active</StatusPill>
-                      )}
-                    </div>
+              {/* ── Stat row ── */}
+              <div className="grid grid-cols-3 gap-2.5">
+                {[
+                  { label: 'Cards',   value: cards.length,  mono: true },
+                  { label: 'Paused',  value: frozenCount,   mono: true },
+                  { label: 'Design',  value: activeScheme.label, mono: false },
+                ].map(({ label, value, mono }) => (
+                  <div key={label} className="glass-sm p-3">
+                    <p className="section-title mb-1" style={{ fontSize: '9px' }}>{label}</p>
+                    <p className={`text-white font-bold truncate ${mono ? 'font-mono text-xl peso-amount' : 'text-sm'}`}>{value}</p>
                   </div>
+                ))}
+              </div>
 
-                  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <CardActionButton
-                      icon={flipped ? HiEyeSlash : HiEye}
-                      label={flipped ? 'Front' : 'Details'}
-                      hint={flipped ? 'Show card front' : 'Show stored card details'}
-                      onClick={() => setFlipped((value) => !value)}
-                    />
-                    <CardActionButton
-                      icon={activeCard.isFrozen ? HiPlayCircle : HiPauseCircle}
-                      label={activeCard.isFrozen ? 'Activate' : 'Pause'}
-                      hint="Mark this card as paused inside PisoWise"
-                      onClick={() => handleToggleFrozen(activeCard)}
-                      active={activeCard.isFrozen}
-                      disabled={busyAction === `freeze-${activeCard.id}`}
-                    />
-                    <CardActionButton
-                      icon={HiStar}
-                      label={activeCard.isPrimary ? 'Primary' : 'Set Primary'}
-                      hint="Use this as the main card"
-                      onClick={() => handleSetPrimary(activeCard)}
-                      active={activeCard.isPrimary}
-                      disabled={activeCard.isPrimary || busyAction === `primary-${activeCard.id}`}
-                    />
-                    <CardActionButton
-                      icon={HiClipboardDocument}
-                      label="Copy Mask"
-                      hint="Copy the masked card number"
-                      onClick={() => handleCopy(activeCard)}
-                    />
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-3 gap-2">
-                    <button type="button" onClick={handleRecordSpend} className="btn-secondary px-3 py-2.5 text-xs">
-                      <HiArrowsRightLeft className="h-4 w-4" />
-                      Spend
-                    </button>
-                    <button type="button" onClick={() => initiateEdit(activeCard)} className="btn-secondary px-3 py-2.5 text-xs">
-                      <HiPencil className="h-4 w-4" />
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(activeCard)}
-                      disabled={busyAction === `delete-${activeCard.id}`}
-                      className="btn-danger px-3 py-2.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <HiTrash className="h-4 w-4" />
-                      Delete
-                    </button>
-                  </div>
-
-                  <div className="mt-4 flex items-start gap-2 rounded-2xl border border-white/10 bg-pw-subtle p-3">
-                    {activeCard.isFrozen ? (
-                      <HiLockClosed className="mt-0.5 h-4 w-4 shrink-0 text-pw-rose" />
-                    ) : (
-                      <HiLockOpen className="mt-0.5 h-4 w-4 shrink-0 text-pw-emerald" />
-                    )}
-                    <p className="text-xs leading-relaxed text-pw-muted">
-                      Pause/activate is a PisoWise status only. It does not contact your bank or e-wallet provider.
+              {/* ── Active card detail panel ── */}
+              <div className="glass p-5 space-y-4">
+                {/* Title row */}
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="section-title mb-0.5">Active Card</p>
+                    <h2 className="font-display text-2xl text-white leading-none mt-1">{activeCard.nickname}</h2>
+                    <p className="text-pw-muted text-sm mt-1">
+                      {activeType.label} · ends in <span className="font-mono text-white/80">{activeCard.lastFour}</span>
                     </p>
                   </div>
+                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                    {activeCard.isPrimary && <StatusPill tone="gold" icon={HiStar}>Primary</StatusPill>}
+                    {activeCard.isFrozen
+                      ? <StatusPill tone="rose" icon={HiLockClosed}>Paused</StatusPill>
+                      : <StatusPill tone="emerald" icon={HiCheckCircle}>Active</StatusPill>
+                    }
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
+                <div className="divider" />
+
+                {/* 4-action grid */}
+                <div className="grid grid-cols-4 gap-2">
+                  <CardActionButton
+                    icon={flipped ? HiEyeSlash : HiEye}
+                    label={flipped ? 'Front' : 'Details'}
+                    hint={flipped ? 'Show card front' : 'Flip to see stored details'}
+                    onClick={() => setFlipped(v => !v)}
+                  />
+                  <CardActionButton
+                    icon={activeCard.isFrozen ? HiPlayCircle : HiPauseCircle}
+                    label={activeCard.isFrozen ? 'Activate' : 'Pause'}
+                    active={activeCard.isFrozen}
+                    disabled={busyAction === `freeze-${activeCard.id}`}
+                    onClick={() => handleToggleFrozen(activeCard)}
+                  />
+                  <CardActionButton
+                    icon={HiStar}
+                    label={activeCard.isPrimary ? 'Primary' : 'Set Primary'}
+                    active={activeCard.isPrimary}
+                    disabled={activeCard.isPrimary || busyAction === `primary-${activeCard.id}`}
+                    onClick={() => handleSetPrimary(activeCard)}
+                  />
+                  <CardActionButton
+                    icon={HiClipboardDocument}
+                    label="Copy"
+                    hint="Copy masked card number"
+                    onClick={() => handleCopy(activeCard)}
+                  />
+                </div>
+
+                {/* 3-action row */}
+                <div className="grid grid-cols-3 gap-2">
+                  <button onClick={() => navigate('/transactions?tab=expense')} className="btn-secondary text-xs py-2.5 gap-1.5">
+                    <HiArrowsRightLeft className="w-3.5 h-3.5" /> Record Spend
+                  </button>
+                  <button onClick={() => initiateEdit(activeCard)} className="btn-secondary text-xs py-2.5 gap-1.5">
+                    <HiPencil className="w-3.5 h-3.5" /> Edit
+                  </button>
+                  <button
+                    disabled={busyAction === `delete-${activeCard.id}`}
+                    onClick={() => handleDelete(activeCard)}
+                    className="btn-danger text-xs py-2.5 gap-1.5"
+                  >
+                    <HiTrash className="w-3.5 h-3.5" /> Delete
+                  </button>
+                </div>
+
+                {/* Status note */}
+                <div className="flex items-start gap-2.5 rounded-2xl border border-white/[0.06] bg-white/[0.025] p-3">
+                  {activeCard.isFrozen
+                    ? <HiLockClosed className="w-3.5 h-3.5 text-pw-rose flex-shrink-0 mt-0.5" />
+                    : <HiLockOpen   className="w-3.5 h-3.5 text-pw-emerald flex-shrink-0 mt-0.5" />
+                  }
+                  <p className="text-[11px] text-pw-muted leading-relaxed">
+                    Pause/activate is a PisoWise status only — it does not contact your bank or e-wallet.
+                  </p>
+                </div>
+              </div>
+
+              {/* ── All cards list ── */}
+              {cards.length > 1 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
                     <p className="section-title mb-0">All Cards</p>
                     <p className="text-xs text-pw-muted">{cards.length} saved</p>
                   </div>
-                  <div className="grid gap-2 md:grid-cols-2">
-                    {cards.map((card, index) => {
-                      const scheme = schemeFor(card);
-                      const type = cardTypeFor(card);
-                      const isActive = index === activeCardIdx;
-
+                  <div className="space-y-2">
+                    {cards.map((card, i) => {
+                      const sch     = schemeFor(card);
+                      const tp      = cardTypeFor(card);
+                      const isActive = i === activeCardIdx;
                       return (
-                        <motion.button
-                          key={card.id}
-                          type="button"
-                          onClick={() => selectCard(index)}
-                          whileTap={{ scale: 0.98 }}
-                          className={`flex min-h-[82px] w-full items-center gap-3 rounded-2xl border p-3 text-left transition-all ${
+                        <motion.button key={card.id} type="button" whileTap={{ scale: 0.98 }}
+                          onClick={() => selectCard(i)}
+                          className={`flex w-full items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer ${
                             isActive
-                              ? 'border-pw-gold/35 bg-pw-gold-dim'
-                              : 'border-white/10 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.06]'
+                              ? 'border-pw-gold/30 bg-pw-gold-dim'
+                              : 'border-white/[0.07] bg-white/[0.035] hover:border-white/15 hover:bg-white/[0.06]'
                           }`}
                         >
-                          <div className="h-11 w-16 shrink-0 rounded-xl border border-white/10 shadow-inner"
-                            style={{ background: scheme.gradient }}
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="truncate text-sm font-bold text-white">{card.nickname}</p>
-                              {card.isPrimary && <HiStar className="h-3.5 w-3.5 shrink-0 text-pw-gold" />}
-                            </div>
-                            <p className="mt-1 text-xs text-pw-muted">{type.label} · ends {card.lastFour}</p>
-                            {card.createdAt && (
-                              <p className="mt-0.5 text-[11px] text-white/35">Added {formatDate(card.createdAt, 'short')}</p>
-                            )}
+                          {/* Mini card swatch */}
+                          <div className="w-14 h-9 rounded-xl flex-shrink-0 flex items-center justify-center"
+                            style={{ background: sch.gradient, border: '1px solid rgba(255,255,255,0.1)' }}>
+                            <CardTypeIcon typeId={card.cardType} size={16} color="rgba(255,255,255,0.7)" />
                           </div>
-                          {card.isFrozen && <HiLockClosed className="h-4 w-4 shrink-0 text-pw-rose" />}
+                          <div className="flex-1 min-w-0 text-left">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-semibold text-white truncate">{card.nickname}</p>
+                              {card.isPrimary && <HiStar className="w-3 h-3 text-pw-gold flex-shrink-0" />}
+                            </div>
+                            <p className="text-xs text-pw-muted mt-0.5">
+                              {tp.label} · <span className="font-mono">···· {card.lastFour}</span>
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {card.isFrozen && <HiLockClosed className="w-3.5 h-3.5 text-pw-rose" />}
+                            <HiChevronRight className="w-4 h-4 text-pw-muted" />
+                          </div>
                         </motion.button>
                       );
                     })}
                   </div>
                 </div>
-              </section>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      <OTPModal
-        isOpen={showOTP}
-        onClose={() => setShowOTP(false)}
-        onVerified={onOTPVerified}
-        purpose={otpPurpose}
-      />
+      {/* ── OTP Modal ── */}
+      <OTPModal isOpen={showOTP} onClose={() => setShowOTP(false)} onVerified={onOTPVerified} purpose={otpPurpose} />
 
+      {/* ── Add/Edit Sheet ── */}
       <AnimatePresence>
         {showModal && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
-              onClick={() => setShowModal(false)}
-            />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50"
+              onClick={() => setShowModal(false)} />
+
             <motion.div
               initial={{ opacity: 0, y: '100%' }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: '100%' }}
-              transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-              className="fixed inset-x-0 bottom-0 z-50 max-h-[88dvh] overflow-y-auto rounded-t-3xl border border-white/10 bg-pw-dark/[0.98] px-6 pt-6 shadow-card backdrop-blur-glass sm:mx-auto sm:max-w-2xl sheet-modal"
+              transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+              className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl overflow-hidden"
+              style={{ maxHeight: '90dvh' }}
             >
-              <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-white/20" />
+              <div className="overflow-y-auto sheet-modal px-5 pt-5 pb-8"
+                style={{ background: 'rgba(10,18,35,0.98)', backdropFilter: 'blur(28px)', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none', maxHeight: '90dvh' }}>
 
-              <div className="mb-5">
-                <CreditCardVisual
-                  card={{
-                    lastFour: watch('lastFour') || '0000',
-                    cardType: watch('cardType') || 'visa',
-                    nickname: watch('nickname') || 'My Card',
+                {/* Handle + close */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-1 rounded-full bg-white/20" />
+                  <button onClick={() => setShowModal(false)}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-pw-muted hover:text-white hover:bg-pw-subtle transition-all cursor-pointer">
+                    <HiXMark className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Live card preview */}
+                <div className="mb-5">
+                  <CreditCardVisual card={{
+                    lastFour:    watch('lastFour') || '0000',
+                    cardType:    watch('cardType') || 'visa',
+                    nickname:    watch('nickname') || 'My Card',
                     colorScheme: selectedScheme,
-                    isPrimary: watch('isPrimary'),
-                    isFrozen: editCard?.isFrozen || false,
-                    verified: true,
-                  }}
-                />
-              </div>
-
-              <div className="mb-5 flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pw-gold">Card Setup</p>
-                  <h2 className="mt-1 font-display text-2xl font-bold text-white">
-                    {editCard ? 'I-edit ang Card' : 'Mag-dagdag ng Card'}
-                  </h2>
-                </div>
-                <StatusPill tone="emerald" icon={HiShieldCheck}>OTP verified</StatusPill>
-              </div>
-
-              <div className="mb-4 rounded-2xl border border-pw-emerald/20 bg-pw-emerald-dim p-3">
-                <p className="text-xs leading-relaxed text-white/75">
-                  Ilagay lamang ang <strong className="text-white">huling 4 digit</strong>. Huwag ilagay ang buong numero, CVV, o expiry date.
-                </p>
-              </div>
-
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <div>
-                  <label className="mb-1.5 block text-xs text-pw-muted">
-                    Huling 4 Digit ng Card <span className="text-pw-rose">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="1234"
-                    maxLength={4}
-                    className="input-glass text-center font-mono text-2xl tracking-widest"
-                    disabled={!!editCard}
-                    {...register('lastFour', {
-                      required: 'Ilagay ang huling 4 digit',
-                      pattern: { value: /^\d{4}$/, message: 'Dapat eksaktong 4 na numero' },
-                    })}
-                  />
-                  {editCard && <p className="mt-1 text-xs text-pw-muted">Hindi mababago ang card number.</p>}
-                  {errors.lastFour && <p className="mt-1 text-xs text-pw-rose">{errors.lastFour.message}</p>}
+                    isPrimary:   watch('isPrimary'),
+                    isFrozen:    editCard?.isFrozen || false,
+                  }} />
                 </div>
 
-                <div>
-                  <label className="mb-2 block text-xs text-pw-muted">Uri ng Card</label>
-                  <div className="mb-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
-                    {CARD_TYPES.slice(0, 6).map((type) => (
-                      <label key={type.id} className="cursor-pointer">
-                        <input
-                          type="radio"
-                          value={type.id}
-                          className="sr-only"
-                          {...register('cardType', { required: 'Pumili ng uri ng card' })}
-                        />
-                        <div className={`min-h-[66px] rounded-xl border p-2 text-center transition-all ${
-                          watch('cardType') === type.id
-                            ? 'border-pw-gold/50 bg-pw-gold-dim'
-                            : 'border-white/10 bg-pw-subtle hover:border-white/20'
-                        }`}>
-                          <span className="block text-lg">{type.icon}</span>
-                          <span className="mt-0.5 block text-[10px] leading-tight text-pw-muted">{type.label}</span>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                  <select className="input-glass text-sm" {...register('cardType', { required: 'Pumili ng uri' })}>
-                    <option value="">Pumili ng uri ng card...</option>
-                    {CARD_TYPES.map((type) => (
-                      <option key={type.id} value={type.id}>{type.icon} {type.label}</option>
-                    ))}
-                  </select>
-                  {errors.cardType && <p className="mt-1 text-xs text-pw-rose">{errors.cardType.message}</p>}
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs text-pw-muted">Nickname ng Card</label>
-                  <input
-                    type="text"
-                    placeholder="hal. BDO ATM, GCash Pang-emergency..."
-                    className="input-glass"
-                    maxLength={40}
-                    {...register('nickname')}
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-xs text-pw-muted">Card Design</label>
-                  <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
-                    {CARD_COLOR_SCHEMES.map((scheme) => (
-                      <button
-                        key={scheme.id}
-                        type="button"
-                        onClick={() => setSelectedScheme(scheme.id)}
-                        className={`h-11 rounded-xl border border-white/10 transition-all ${
-                          selectedScheme === scheme.id ? 'scale-105 ring-2 ring-white/70' : 'hover:scale-105'
-                        }`}
-                        style={{ background: scheme.gradient }}
-                        title={scheme.label}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                {/* Title */}
+                <div className="flex items-start justify-between mb-4">
                   <div>
-                    <p className="text-sm font-semibold text-white">Set as primary card</p>
-                    <p className="mt-0.5 text-xs text-pw-muted">Only one card can be primary at a time.</p>
+                    <p className="section-title mb-0.5">Card Setup</p>
+                    <h2 className="font-display text-2xl text-white">
+                      {editCard ? 'I-edit ang Card' : 'Mag-dagdag ng Card'}
+                    </h2>
                   </div>
-                  <input
-                    type="checkbox"
-                    className="h-5 w-5 accent-pw-gold"
-                    {...register('isPrimary')}
-                  />
-                </label>
-
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">
-                    Kanselahin
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    {editCard ? 'I-update' : 'I-save'}
-                  </button>
+                  <StatusPill tone="emerald" icon={HiShieldCheck}>OTP verified</StatusPill>
                 </div>
-              </form>
+
+                {/* Security note */}
+                <div className="glass-emerald flex items-start gap-2.5 p-3 rounded-xl mb-5">
+                  <HiShieldCheck className="w-3.5 h-3.5 text-pw-emerald flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-white/70 leading-relaxed">
+                    Ilagay lamang ang <strong className="text-white">huling 4 digit</strong>. Huwag ilagay ang buong numero, CVV, o expiry date.
+                  </p>
+                </div>
+
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+
+                  {/* Last 4 */}
+                  <div>
+                    <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">
+                      Huling 4 Digit <span className="text-pw-rose">*</span>
+                    </label>
+                    <input type="text" inputMode="numeric" placeholder="1234" maxLength={4}
+                      className="input-glass text-center font-mono text-3xl tracking-[0.4em] peso-amount"
+                      disabled={!!editCard}
+                      {...register('lastFour', {
+                        required: 'Ilagay ang huling 4 digit',
+                        pattern:  { value: /^\d{4}$/, message: 'Dapat eksaktong 4 na numero' },
+                      })} />
+                    {editCard && <p className="mt-1.5 text-xs text-pw-muted">Hindi mababago ang card number.</p>}
+                    {errors.lastFour && <p className="mt-1.5 text-xs text-pw-rose">{errors.lastFour.message}</p>}
+                  </div>
+
+                  {/* Card type — SVG grid, no emojis or dropdown */}
+                  <div>
+                    <label className="block text-xs text-pw-muted mb-2 font-semibold uppercase tracking-wide">Uri ng Card</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {CARD_TYPES.slice(0, 8).map(t => {
+                        const isSelected = watch('cardType') === t.id;
+                        return (
+                          <label key={t.id} className="cursor-pointer">
+                            <input type="radio" value={t.id} className="sr-only"
+                              {...register('cardType', { required: true })} />
+                            <div className={`flex flex-col items-center gap-1.5 p-2.5 rounded-2xl border transition-all ${
+                              isSelected
+                                ? 'border-pw-gold/45 bg-pw-gold-dim'
+                                : 'border-white/[0.07] bg-white/[0.03] hover:border-white/15'
+                            }`}>
+                              <div className={`transition-colors ${isSelected ? 'text-pw-gold' : 'text-pw-muted'}`}>
+                                <CardTypeIcon typeId={t.id} size={20} color={isSelected ? '#F5B731' : 'rgba(255,255,255,0.42)'} />
+                              </div>
+                              <span className={`text-[9px] font-semibold text-center leading-tight ${isSelected ? 'text-pw-gold' : 'text-pw-muted'}`}>
+                                {t.label}
+                              </span>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {/* Remaining as slim select */}
+                    {CARD_TYPES.length > 8 && (
+                      <select className="input-glass text-sm mt-2" {...register('cardType')}>
+                        {CARD_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* Nickname */}
+                  <div>
+                    <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">Nickname</label>
+                    <input type="text" placeholder="hal. BDO ATM, GCash Pang-emergency…"
+                      className="input-glass" maxLength={40} {...register('nickname')} />
+                  </div>
+
+                  {/* Card design swatches */}
+                  <div>
+                    <label className="block text-xs text-pw-muted mb-2 font-semibold uppercase tracking-wide">Card Design</label>
+                    <div className="grid grid-cols-5 gap-2">
+                      {CARD_COLOR_SCHEMES.map(s => (
+                        <button key={s.id} type="button" onClick={() => setSelectedScheme(s.id)} title={s.label}
+                          className={`h-9 rounded-xl border transition-all cursor-pointer ${
+                            selectedScheme === s.id
+                              ? 'scale-105 ring-2 ring-white/60 ring-offset-1 ring-offset-pw-dark border-white/20'
+                              : 'border-white/10 hover:scale-105'
+                          }`}
+                          style={{ background: s.gradient }} />
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-pw-muted mt-1.5">{CARD_COLOR_SCHEMES.find(s => s.id === selectedScheme)?.label}</p>
+                  </div>
+
+                  {/* Primary toggle */}
+                  <label className="flex items-center justify-between gap-4 rounded-2xl border border-white/[0.07] bg-white/[0.03] p-3.5 cursor-pointer hover:border-white/15 transition-all">
+                    <div>
+                      <p className="text-sm font-semibold text-white">Set as primary card</p>
+                      <p className="text-xs text-pw-muted mt-0.5">Only one card can be primary.</p>
+                    </div>
+                    <input type="checkbox" className="w-5 h-5 accent-pw-gold cursor-pointer" {...register('isPrimary')} />
+                  </label>
+
+                  {/* Submit row */}
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">Kanselahin</button>
+                    <button type="submit" className="btn-primary">{editCard ? 'I-update' : 'I-save'}</button>
+                  </div>
+                </form>
+              </div>
             </motion.div>
           </>
         )}
