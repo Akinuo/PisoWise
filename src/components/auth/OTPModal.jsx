@@ -1,7 +1,7 @@
 // src/components/auth/OTPModal.jsx
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HiXMark, HiEnvelope, HiShieldCheck, HiLockClosed, HiCheckCircle } from 'react-icons/hi2';
+import { HiXMark, HiCheckCircle } from 'react-icons/hi2';
 import { initiateOTPVerification } from '../../services/emailjs';
 import { storeOTPToken, verifyOTPToken } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -196,7 +196,7 @@ export default function OTPModal({ isOpen, onClose, onVerified, purpose = 'add a
 
                     <h2 className="font-display text-2xl text-white mb-1.5">Verify Your Identity</h2>
                     <p className="text-pw-muted text-sm mb-1 leading-relaxed">
-                      To {purpose}, we'll send a 6-digit code to:
+                      To {purpose}, we&rsquo;ll send a 6-digit code to:
                     </p>
                     <p className="text-white font-semibold text-sm mb-5 truncate">{user?.email}</p>
 

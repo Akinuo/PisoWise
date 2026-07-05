@@ -3,22 +3,22 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
+import { shallow } from 'zustand/shallow';
 import { saveBudget, getBudget, getTransactions } from '../services/firebase';
 import { generateBudget } from '../services/groq';
 import { formatPeso, parsePesoInput, getCurrentMonthYear, getPercent } from '../utils/formatters';
 import { EXPENSE_CATEGORIES, MONTHS_PH } from '../utils/constants';
 import {
-  HiSparkles, HiCurrencyDollar, HiUsers, HiChevronDown,
-  HiChevronUp, HiDocumentText, HiArrowPath,
+  HiSparkles, HiUsers, HiDocumentText, HiArrowPath,
 } from 'react-icons/hi2';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import toast from 'react-hot-toast';
 
 const CHART_COLORS = ['#F7C13A','#3B82F6','#10B981','#F43F5E','#8B5CF6','#F97316','#06B6D4','#EC4899'];
 
 export default function Budget() {
   const { user, profile } = useAuth();
-  const { transactions, setTransactions, transactionsLoaded, activeBudget, setActiveBudget } = useStore();
+  const { transactions, setTransactions, transactionsLoaded, setActiveBudget } = useStore((s) => ({ transactions: s.transactions, setTransactions: s.setTransactions, transactionsLoaded: s.transactionsLoaded, setActiveBudget: s.setActiveBudget, }), shallow);
 
   const { month, year } = getCurrentMonthYear();
   const [income,      setIncome]      = useState(String(profile?.monthlyIncome || ''));
@@ -27,9 +27,9 @@ export default function Budget() {
   const [aiResult,    setAiResult]    = useState('');
   const [generating,  setGenerating]  = useState(false);
   const [saving,      setSaving]      = useState(false);
-  const [expanded,    setExpanded]    = useState({});
 
   // Load transactions and existing budget
+  // Fetch once per user session — see Dashboard.jsx for why deps stay [user] only.
   useEffect(() => {
     if (!user) return;
     const load = async () => {
@@ -41,6 +41,7 @@ export default function Budget() {
       if (existing) { setActiveBudget(existing); setAiResult(existing.aiContent || ''); }
     };
     load().catch(console.error);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Build expense summary from transactions this month

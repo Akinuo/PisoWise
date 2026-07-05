@@ -4,12 +4,13 @@ import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
-import { calculateHealthScore, getHealthScoreInfo, formatPeso, getPercent } from '../utils/formatters';
+import { shallow } from 'zustand/shallow';
+import { calculateHealthScore, getHealthScoreInfo, formatPeso } from '../utils/formatters';
 import { requestFCMPermission } from '../services/firebase';
 import toast from 'react-hot-toast';
 import {
   HiUser, HiEnvelope, HiBanknotes, HiBell,
-  HiArrowRightOnRectangle, HiPencil, HiCheckCircle,
+  HiArrowRightOnRectangle, HiPencil,
   HiShieldCheck, HiDevicePhoneMobile, HiChartBar,
   HiAcademicCap, HiCreditCard,
 } from 'react-icons/hi2';
@@ -17,8 +18,7 @@ import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 
 export default function Profile() {
   const { user, profile, logout, updateProfile } = useAuth();
-  const { savings, debts, transactions, cards, reset: resetStore,
-          getMonthlyStats, getTotalSavings, getTotalDebt } = useStore();
+  const { savings, debts, transactions, cards, reset: resetStore, getMonthlyStats, getTotalSavings, getTotalDebt } = useStore((s) => ({ savings: s.savings, debts: s.debts, transactions: s.transactions, cards: s.cards, reset: s.reset, getMonthlyStats: s.getMonthlyStats, getTotalSavings: s.getTotalSavings, getTotalDebt: s.getTotalDebt, }), shallow);
 
   const [editing, setEditing]     = useState(false);
   const [saving,  setSaving]      = useState(false);
@@ -43,7 +43,7 @@ export default function Profile() {
       setValue('displayName',    profile.displayName || '');
       setValue('monthlyIncome',  String(profile.monthlyIncome || ''));
     }
-  }, [profile, editing]);
+  }, [profile, editing, setValue]);
 
   const onSave = async (data) => {
     setSaving(true);
@@ -122,16 +122,18 @@ export default function Profile() {
                   <div className="relative">
                     <HiUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-pw-muted" />
                     <input type="text" className="input-glass pl-10"
-                      {...register('displayName', { required: true, minLength: 2 })} />
+                      {...register('displayName', { required: 'Kinakailangan ang pangalan', minLength: { value: 2, message: 'Hindi bababa sa 2 karakter' } })} />
                   </div>
+                  {errors.displayName && <p className="text-pw-rose text-xs mt-1.5 font-medium">{errors.displayName.message}</p>}
                 </div>
                 <div>
                   <label className="block text-xs text-pw-muted mb-1.5">Buwanang Kita (para sa AI)</label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pw-gold font-bold text-sm">₱</span>
                     <input type="number" min="0" className="input-glass pl-8"
-                      {...register('monthlyIncome', { min: 0 })} />
+                      {...register('monthlyIncome', { min: { value: 0, message: 'Dapat ay positibong halaga' } })} />
                   </div>
+                  {errors.monthlyIncome && <p className="text-pw-rose text-xs mt-1.5 font-medium">{errors.monthlyIncome.message}</p>}
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setEditing(false)} className="btn-secondary flex-1 py-2">Kanselahin</button>
@@ -173,8 +175,8 @@ export default function Profile() {
                 { icon: HiShieldCheck,    label: 'Aktibong Utang',   value: debts.filter(d => d.remainingAmount > 0).length, color: '#F43F5E' },
                 { icon: HiCreditCard,     label: 'Mga Card',         value: cards.length,          color: '#F7C13A' },
                 { icon: HiAcademicCap,    label: 'Aralin Tapos',     value: completedLessons,      color: '#8B5CF6' },
-                { icon: HiBanknotes,      label: 'Kabuuang Ipon',    value: formatPeso(totalSavings, 0), color: '#10B981', isText: true },
-              ].map(({ icon: Icon, label, value, color, isText }) => (
+                { icon: HiBanknotes,      label: 'Kabuuang Ipon',    value: formatPeso(totalSavings, 0), color: '#10B981' },
+              ].map(({ icon: Icon, label, value, color }) => (
                 <div key={label} className="glass-sm p-3 flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ background: `${color}18` }}>

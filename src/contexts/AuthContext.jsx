@@ -4,9 +4,14 @@ import {
   registerUser, loginUser, signInWithGoogle, logoutUser, onAuthChange,
   getUserProfile, updateUserProfile, resetPassword, requestFCMPermission,
 } from '../services/firebase';
+import useStore from '../store/useStore';
 
 const AuthContext = createContext(null);
 
+// Standard context pattern: useAuth + AuthProvider are meant to live together
+// so every consumer imports from one place. Splitting into two files just for
+// HMR purity isn't worth the churn here.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
@@ -35,6 +40,7 @@ export const AuthProvider = ({ children }) => {
       } else {
         setUser(null);
         setProfile(null);
+        useStore.getState().reset();
       }
       setLoading(false);
     });
@@ -93,6 +99,9 @@ export const AuthProvider = ({ children }) => {
     await logoutUser();
     setUser(null);
     setProfile(null);
+    // Clear cached transactions/savings/debts/cards so the next person to
+    // log in on this device never sees a flash of the previous user's data.
+    useStore.getState().reset();
   }, []);
 
   // ── Reset Password ───────────────────────────────────────────────────

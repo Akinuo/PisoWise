@@ -87,6 +87,15 @@ const useVoiceInput = () => {
     setIsSupported(supported);
   }, []);
 
+  // ── Stop the mic if the component unmounts mid-listen ──────────
+  // Without this, navigating away while recognition is active leaves
+  // the microphone open in the background.
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
   // ── Start listening ───────────────────────────────────────────
   const startListening = useCallback(async () => {
     setError(null);

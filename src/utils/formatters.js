@@ -81,7 +81,7 @@ export const getPercent = (value, total) => {
 };
 
 // ─── Financial Health Score ───────────────────────────────────────────────
-export const calculateHealthScore = ({ monthlyIncome, monthlyExpenses, totalSavings, totalDebt, savingsGoals = [], debts = [] }) => {
+export const calculateHealthScore = ({ monthlyIncome, monthlyExpenses, totalSavings, totalDebt, savingsGoals = [] }) => {
   let score = 0;
 
   // 1. Savings rate (0-30 pts)

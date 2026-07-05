@@ -1,5 +1,5 @@
 // src/pages/Lessons.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LESSONS } from '../utils/constants';
@@ -136,7 +136,8 @@ function LessonQuiz({ quiz, onComplete }) {
 // ── Main Lessons Page ───────────────────────────────────────────────────────
 export default function Lessons() {
   const navigate = useNavigate();
-  const [activeLessonId, setActiveLessonId] = useState(null);
+  const { id: lessonIdParam } = useParams();
+  const [activeLessonId, setActiveLessonId] = useState(lessonIdParam || null);
   const [activeSection,  setActiveSection]  = useState(0);
   const [showQuiz,       setShowQuiz]       = useState(false);
   const [completed,      setCompleted]      = useState(() => {
@@ -146,13 +147,21 @@ export default function Lessons() {
   const [aiAnswer,   setAiAnswer]   = useState('');
   const [aiLoading,  setAiLoading]  = useState(false);
 
+  // Keep state in sync if the URL's :id changes (e.g. tapping a lesson link
+  // while already on the Lessons page, or browser back/forward navigation).
+  useEffect(() => {
+    setActiveLessonId(lessonIdParam || null);
+    setActiveSection(0);
+    setShowQuiz(false);
+  }, [lessonIdParam]);
+
   const lesson = LESSONS.find(l => l.id === activeLessonId);
 
   const handleComplete = (score, total) => {
     if (score / total >= 0.75) {
       const updated = [...new Set([...completed, activeLessonId])];
       setCompleted(updated);
-      try { localStorage.setItem('pw_completed_lessons', JSON.stringify(updated)); } catch {}
+      try { localStorage.setItem('pw_completed_lessons', JSON.stringify(updated)); } catch { /* localStorage unavailable — progress still updates in memory for this session */ }
     }
   };
 
@@ -175,7 +184,7 @@ export default function Lessons() {
           <div className="space-y-4">
             {/* Back */}
             <div className="flex items-center gap-3 pt-2">
-              <button onClick={() => { setActiveLessonId(null); setActiveSection(0); setShowQuiz(false); setAiAnswer(''); }}
+              <button onClick={() => { navigate('/lessons'); setAiAnswer(''); }}
                 className="w-9 h-9 rounded-2xl bg-pw-subtle flex items-center justify-center text-pw-muted hover:text-white transition-all">
                 <HiArrowLeft className="w-4 h-4" />
               </button>
@@ -323,7 +332,7 @@ export default function Lessons() {
                 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}>
                 <LessonCard lesson={lesson} completed={completed.includes(lesson.id)}
-                  onClick={() => { setActiveLessonId(lesson.id); setActiveSection(0); setShowQuiz(false); }} />
+                  onClick={() => navigate(`/lessons/${lesson.id}`)} />
               </motion.div>
             ))}
           </div>
@@ -331,7 +340,7 @@ export default function Lessons() {
           <div className="glass-gold p-4 text-center">
             <p className="text-pw-gold font-semibold text-sm mb-1">💡 Tip ng Araw</p>
             <p className="text-white/80 text-xs leading-relaxed">
-              "Ang financial literacy ay ang pinakamahalagang bagay na maaari mong ibigay sa iyong pamilya — mas mahalaga pa sa pera."
+              &ldquo;Ang financial literacy ay ang pinakamahalagang bagay na maaari mong ibigay sa iyong pamilya — mas mahalaga pa sa pera.&rdquo;
             </p>
           </div>
         </div>

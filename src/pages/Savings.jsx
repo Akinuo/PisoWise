@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
+import { shallow } from 'zustand/shallow';
 import { addSavingsGoal, getSavingsGoals, updateSavingsGoal, deleteSavingsGoal, getTransactions } from '../services/firebase';
 import { generateSavingsStrategy } from '../services/groq';
 import { formatPeso, formatDate, getPercent, parsePesoInput } from '../utils/formatters';
@@ -26,7 +27,11 @@ const GOAL_COLORS = [
 export default function Savings() {
   const { user, profile } = useAuth();
   const { savings, setSavings, savingsLoaded, addSavingLocal, updateSavingLocal, removeSavingLocal,
-          transactions, setTransactions, transactionsLoaded } = useStore();
+          transactions, setTransactions, transactionsLoaded } = useStore((s) => ({
+    savings: s.savings, setSavings: s.setSavings, savingsLoaded: s.savingsLoaded,
+    addSavingLocal: s.addSavingLocal, updateSavingLocal: s.updateSavingLocal, removeSavingLocal: s.removeSavingLocal,
+    transactions: s.transactions, setTransactions: s.setTransactions, transactionsLoaded: s.transactionsLoaded,
+  }), shallow);
 
   const [showModal, setShowModal] = useState(false);
   const [editGoal,  setEditGoal]  = useState(null);
@@ -35,8 +40,9 @@ export default function Savings() {
   const [genLoading, setGenLoading] = useState(false);
   const [selectedColor, setSelectedColor] = useState('blue');
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm();
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
+  // Fetch once per user session — see Dashboard.jsx for why deps stay [user] only.
   useEffect(() => {
     if (!user) return;
     const load = async () => {
@@ -44,6 +50,7 @@ export default function Savings() {
       if (!transactionsLoaded) setTransactions(await getTransactions(user.uid, 60));
     };
     load().catch(console.error);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const totalSavings = savings.reduce((s, g) => s + (g.currentAmount || 0), 0);

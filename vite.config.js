@@ -17,6 +17,12 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    // firebase (~585KB) and recharts (~549KB) are inherently large vendor libs.
+    // They're already isolated into their own cacheable chunks below and only
+    // loaded when a route that needs them is visited — splitting further
+    // wouldn't reduce total bytes shipped, just how they're chunked. Raising
+    // the warning threshold avoids noise for chunks that are already optimal.
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
         manualChunks(id) {

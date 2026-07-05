@@ -231,8 +231,9 @@ export const deleteDebt = async (debtId) => {
 
 // ─── Cards (last 4 digits only) ───────────────────────────────────────────
 export const addCard = async (userId, data) => {
-  // Safety check — never store sensitive data
-  const { fullNumber, cvv, expiryDate, ...safeData } = data;
+  // Safety check — never store sensitive data. Prefixed with _ to signal
+  // these are intentionally destructured-and-discarded, not dead code.
+  const { fullNumber: _fullNumber, cvv: _cvv, expiryDate: _expiryDate, ...safeData } = data;
   return addDoc(collection(db, 'cards'), {
     userId,
     ...safeData,
@@ -248,7 +249,8 @@ export const getCards = async (userId) => {
 };
 
 export const updateCard = async (cardId, data) => {
-  const { fullNumber, cvv, expiryDate, ...safeData } = data;
+  // Same exclusion as addCard — never let sensitive fields reach Firestore.
+  const { fullNumber: _fullNumber, cvv: _cvv, expiryDate: _expiryDate, ...safeData } = data;
   await updateDoc(doc(db, 'cards', cardId), { ...safeData, updatedAt: serverTimestamp() });
 };
 
@@ -258,51 +260,66 @@ export const deleteCard = async (cardId) => {
 
 // ─── OTP Tokens ───────────────────────────────────────────────────────────
 // ── OTP stored at otpTokens/{userId} — direct path, no query/index needed ──
+const MAX_OTP_ATTEMPTS = 5;
+
+// SHA-256 hash via the Web Crypto API — never store/compare OTPs in plaintext.
+const hashOTP = async (otpStr) => {
+  const bytes  = new TextEncoder().encode(otpStr);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
 export const storeOTPToken = async (userId, otp) => {
   const expiresAt = Timestamp.fromDate(new Date(Date.now() + 10 * 60 * 1000)); // 10 min
-  const otpStr = String(otp).trim();
+  const otpStr  = String(otp).trim();
+  const otpHash = await hashOTP(otpStr);
 
-  // 1. Persist to Firestore (use setDoc so path is predictable — no composite index needed)
+  // Persist only the hash — the plaintext code lives solely in the email sent to the user.
   await setDoc(doc(db, 'otpTokens', userId), {
     userId,
-    otp:       otpStr,
+    otpHash,
+    attempts:  0,
     expiresAt,
     createdAt: new Date().toISOString(), // plain string — no serverTimestamp() delay issue
   });
 
-  // 2. Also keep in sessionStorage as a fast same-device fallback
+  // Fast same-device fallback — also hashed, never plaintext.
   try {
     sessionStorage.setItem(
       `pw_otp_${userId}`,
-      JSON.stringify({ otp: otpStr, expiresAt: Date.now() + 10 * 60 * 1000 })
+      JSON.stringify({ otpHash, attempts: 0, expiresAt: Date.now() + 10 * 60 * 1000 })
     );
   } catch (_) { /* sessionStorage unavailable — Firestore path still works */ }
 };
 
 export const verifyOTPToken = async (userId, enteredOTP) => {
-  const entered = String(enteredOTP).trim();
+  const entered     = String(enteredOTP).trim();
+  const enteredHash = await hashOTP(entered);
 
   // ── Fast path: sessionStorage (same device, no network round-trip) ────────
   try {
     const raw = sessionStorage.getItem(`pw_otp_${userId}`);
     if (raw) {
-      const { otp, expiresAt } = JSON.parse(raw);
+      const { otpHash, attempts = 0, expiresAt } = JSON.parse(raw);
       if (Date.now() > expiresAt) {
         sessionStorage.removeItem(`pw_otp_${userId}`);
-      } else if (otp === entered) {
+      } else if (attempts >= MAX_OTP_ATTEMPTS) {
+        // Too many wrong tries — force the user to request a new code.
+        return false;
+      } else if (otpHash === enteredHash) {
         sessionStorage.removeItem(`pw_otp_${userId}`);
-        // Clean up Firestore token in background
         deleteDoc(doc(db, 'otpTokens', userId)).catch(() => {});
         return true;
       } else {
-        // Wrong code — let Firestore double-check, don't short-circuit
+        sessionStorage.setItem(`pw_otp_${userId}`, JSON.stringify({ otpHash, attempts: attempts + 1, expiresAt }));
       }
     }
   } catch (_) { /* ignore sessionStorage errors */ }
 
   // ── Firestore path: direct getDoc — no query, no composite index ──────────
   try {
-    const tokenSnap = await getDoc(doc(db, 'otpTokens', userId));
+    const tokenRef  = doc(db, 'otpTokens', userId);
+    const tokenSnap = await getDoc(tokenRef);
     if (!tokenSnap.exists()) return false;
 
     const data = tokenSnap.data();
@@ -312,15 +329,21 @@ export const verifyOTPToken = async (userId, enteredOTP) => {
       ? data.expiresAt.toDate()
       : new Date(data.expiresAt);
     if (new Date() > expiresAt) {
-      await deleteDoc(doc(db, 'otpTokens', userId));
+      await deleteDoc(tokenRef);
       return false;
     }
 
-    // Compare OTP
-    if (data.otp !== entered) return false;
+    // Lock out after too many wrong attempts within the validity window.
+    if ((data.attempts || 0) >= MAX_OTP_ATTEMPTS) return false;
+
+    // Compare hashes, not plaintext.
+    if (data.otpHash !== enteredHash) {
+      await updateDoc(tokenRef, { attempts: (data.attempts || 0) + 1 });
+      return false;
+    }
 
     // Valid — delete (single-use)
-    await deleteDoc(doc(db, 'otpTokens', userId));
+    await deleteDoc(tokenRef);
     return true;
   } catch (e) {
     console.error('OTP Firestore verify error:', e);

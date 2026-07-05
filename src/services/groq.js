@@ -152,6 +152,7 @@ Weekly Expenses: ₱${weekTotal.toLocaleString()}
 Weekly Income: ₱${incomeTotal.toLocaleString()}
 Net: ₱${(incomeTotal - weekTotal).toLocaleString()}
 Monthly Budget: ₱${monthlyBudget?.toLocaleString() || 'Not set'}
+Monthly Income: ₱${monthlyIncome?.toLocaleString() || 'Not set'}${monthlyIncome ? ` (this week's expenses are ${((weekTotal / monthlyIncome) * 100).toFixed(0)}% of monthly income)` : ''}
 Spending by Category: ${JSON.stringify(categories)}
 
 Provide:

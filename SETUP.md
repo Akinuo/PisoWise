@@ -247,32 +247,16 @@ npx cap run android
 
 ---
 
-## Step 10 — Cloud Functions (Optional — Requires Blaze Plan)
+## Step 10 — Cloud Functions
 
-Cloud Functions enable push notifications and automated cleanups.
+PisoWise runs entirely on the **Spark (free) plan** and doesn't use Firebase Cloud Functions —
+they require the pay-as-you-go Blaze plan. Everything (AI coaching, tracking, lessons, cards,
+OTP verification) runs client-side or through free-tier Firebase services (Auth, Firestore, FCM).
 
-```bash
-# Upgrade Firebase to Blaze plan at console.firebase.google.com/billing
-# (Add a credit card — you're charged only above free tier limits)
-
-# Install functions dependencies
-cd functions
-npm install
-cd ..
-
-# Deploy all functions
-firebase deploy --only functions
-
-# Or deploy individually
-firebase deploy --only functions:weeklySummaryNotification
-firebase deploy --only functions:onTransactionAdded
-firebase deploy --only functions:cleanupExpiredOTPs
-firebase deploy --only functions:debtPaymentReminder
-firebase deploy --only functions:monthlyHealthCheck
-```
-
-> **Spark Plan Users:** Cloud Functions are disabled. Push notifications and scheduled tasks
-> won't run server-side, but all core features (AI, tracking, lessons, cards) work fully.
+If you later upgrade to Blaze and want server-side push notifications (budget alerts, weekly
+summaries, debt reminders) or scheduled cleanup jobs, you'd add a `functions/` directory back
+with `firebase-functions` and `firebase-admin`, then deploy with `firebase deploy --only functions`.
+That's a separate addition, not something this project currently depends on.
 
 ---
 

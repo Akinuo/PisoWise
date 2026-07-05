@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
+import { shallow } from 'zustand/shallow';
 import { addDebt, getDebts, updateDebt, deleteDebt, getTransactions } from '../services/firebase';
 import { generateDebtPlan } from '../services/groq';
 import { formatPeso, parsePesoInput, getPercent } from '../utils/formatters';
@@ -30,8 +31,7 @@ const DEBT_TYPES = [
 
 export default function Debts() {
   const { user, profile } = useAuth();
-  const { debts, setDebts, debtsLoaded, addDebtLocal, updateDebtLocal, removeDebtLocal,
-          transactions, setTransactions, transactionsLoaded } = useStore();
+  const { debts, setDebts, debtsLoaded, addDebtLocal, updateDebtLocal, removeDebtLocal, transactions, setTransactions, transactionsLoaded } = useStore((s) => ({ debts: s.debts, setDebts: s.setDebts, debtsLoaded: s.debtsLoaded, addDebtLocal: s.addDebtLocal, updateDebtLocal: s.updateDebtLocal, removeDebtLocal: s.removeDebtLocal, transactions: s.transactions, setTransactions: s.setTransactions, transactionsLoaded: s.transactionsLoaded, }), shallow);
 
   const [showModal,   setShowModal]   = useState(false);
   const [editDebt,    setEditDebt]    = useState(null);
@@ -41,6 +41,7 @@ export default function Debts() {
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
+  // Fetch once per user session — see Dashboard.jsx for why deps stay [user] only.
   useEffect(() => {
     if (!user) return;
     const load = async () => {
@@ -48,6 +49,7 @@ export default function Debts() {
       if (!transactionsLoaded) setTransactions(await getTransactions(user.uid, 60));
     };
     load().catch(console.error);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const totalDebt = debts.reduce((s, d) => s + (d.remainingAmount || 0), 0);
@@ -260,7 +262,7 @@ export default function Debts() {
                             </div>
                           </div>
                         )}
-                        {debt.note && <p className="text-xs text-pw-muted mt-2 italic">"{debt.note}"</p>}
+                        {debt.note && <p className="text-xs text-pw-muted mt-2 italic">&ldquo;{debt.note}&rdquo;</p>}
                       </div>
                     </div>
                   </motion.div>

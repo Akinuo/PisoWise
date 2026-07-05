@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   HiHome, HiArrowsRightLeft, HiSparkles,
-  HiAcademicCap, HiUser, HiChartBar,
+  HiAcademicCap, HiChartBar,
   HiCreditCard, HiShieldCheck, HiBanknotes,
   HiArrowRightOnRectangle,
 } from 'react-icons/hi2';

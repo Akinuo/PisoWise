@@ -5,8 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
+import { shallow } from 'zustand/shallow';
 import { addTransaction, deleteTransaction, getTransactions } from '../services/firebase';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants';
+import CategoryIcon from '../components/common/CategoryIcon';
 import { formatPeso, formatDate, parsePesoInput } from '../utils/formatters';
 import { Timestamp } from '../services/firebase';
 import toast from 'react-hot-toast';
@@ -14,186 +16,6 @@ import {
   HiPlus, HiArrowTrendingUp, HiArrowTrendingDown,
   HiTrash, HiArrowsRightLeft, HiXMark,
 } from 'react-icons/hi2';
-
-/* ── Category SVG icons — no emojis ─────────────────────────────────────── */
-function CatIcon({ catId, size = 18, color = 'currentColor' }) {
-  const icons = {
-    // Expense
-    food: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M12 2C8.5 2 6 5 6 8c0 2.5 1.5 4.5 3.5 5.5V20a1 1 0 002 0v-6.5C13.5 12.5 15 10.5 15 8c0-3-2.5-6-3-6z" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-        <path d="M9 2v5M12 2v5M15 2v5" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
-    ),
-    transport: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <rect x="3" y="7" width="18" height="11" rx="3" stroke={color} strokeWidth="1.5"/>
-        <path d="M3 11h18" stroke={color} strokeWidth="1.5"/>
-        <circle cx="7.5" cy="20" r="1.5" stroke={color} strokeWidth="1.5"/>
-        <circle cx="16.5" cy="20" r="1.5" stroke={color} strokeWidth="1.5"/>
-        <path d="M3 7l2-4h14l2 4" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-      </svg>
-    ),
-    utilities: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M12 2L8 9h8L12 2z" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-        <path d="M12 9v7" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-        <circle cx="12" cy="18" r="2" stroke={color} strokeWidth="1.5"/>
-      </svg>
-    ),
-    rent: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M3 11L12 4l9 7v9a1 1 0 01-1 1H4a1 1 0 01-1-1v-9z" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-        <path d="M9 20v-7h6v7" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-      </svg>
-    ),
-    health: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M12 21C7 17 3 14 3 9.5 3 7 5 5 7.5 5c1.5 0 3 .8 4.5 2.4C13.5 5.8 15 5 16.5 5 19 5 21 7 21 9.5 21 14 17 17 12 21z" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-      </svg>
-    ),
-    education: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M2 10l10-6 10 6-10 6-10-6z" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-        <path d="M6 12v5c0 2 2.7 3 6 3s6-1 6-3v-5" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-        <path d="M22 10v5" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
-    ),
-    clothing: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M3 7l5-3 4 3 4-3 5 3-2 4h-3v9H8v-9H5L3 7z" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-      </svg>
-    ),
-    load: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <rect x="5" y="2" width="14" height="20" rx="3" stroke={color} strokeWidth="1.5"/>
-        <circle cx="12" cy="17" r="1" fill={color}/>
-        <path d="M9 6h6" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
-    ),
-    debt: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <rect x="2" y="5" width="20" height="14" rx="3" stroke={color} strokeWidth="1.5"/>
-        <path d="M2 10h20" stroke={color} strokeWidth="1.5"/>
-        <circle cx="8" cy="15" r="1.5" stroke={color} strokeWidth="1.3"/>
-      </svg>
-    ),
-    grocery: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M6 2L3 7h18l-3-5H6z" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-        <path d="M3 7l2 12a2 2 0 002 2h10a2 2 0 002-2l2-12" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-        <path d="M10 12v4M14 12v4" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
-    ),
-    sari_sari: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M3 10a7 7 0 0118 0v10H3V10z" stroke={color} strokeWidth="1.5"/>
-        <path d="M3 10h18" stroke={color} strokeWidth="1.5"/>
-        <path d="M9 20v-5h6v5" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-        <path d="M6 6l1-3M18 6l-1-3M12 6V3" stroke={color} strokeWidth="1.3" strokeLinecap="round"/>
-      </svg>
-    ),
-    remittance: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="1.5"/>
-        <path d="M8 12h8M16 12l-3-3M16 12l-3 3" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
-    savings: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M19 12a7 7 0 10-7 7v2l2-2-2-2v2a5 5 0 110-7" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M11 9v6M9 11h4" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
-    ),
-    insurance: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M12 3L4 6v6c0 5 3.5 8.5 8 9.5 4.5-1 8-4.5 8-9.5V6L12 3z" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-        <path d="M9 12l2 2 4-4" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
-    personal: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="7" r="4" stroke={color} strokeWidth="1.5"/>
-        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
-    ),
-    // Income
-    salary: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <rect x="2" y="7" width="20" height="14" rx="2" stroke={color} strokeWidth="1.5"/>
-        <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" stroke={color} strokeWidth="1.5"/>
-        <path d="M12 12v4M10 14h4" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
-    ),
-    business: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M3 10a7 7 0 0118 0v10H3V10z" stroke={color} strokeWidth="1.5"/>
-        <path d="M3 10h18M9 20v-5h6v5" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-      </svg>
-    ),
-    freelance: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <rect x="3" y="4" width="18" height="14" rx="2" stroke={color} strokeWidth="1.5"/>
-        <path d="M8 20h8M12 18v2" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-        <path d="M9 10l2 2 4-4" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
-    farming: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M3 20s1-6 9-9c0 0-1 6-9 9z" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-        <path d="M12 11c1-3 4-8 9-9 0 5-3 9-9 9z" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-        <path d="M3 20h18" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
-    ),
-    '13th_month': (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M12 2l3 6.5L22 9.3l-5 5 1.2 7-6.2-3.3L5.8 21.3l1.2-7-5-5 6.9-0.8L12 2z" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-      </svg>
-    ),
-    bonus: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="1.5"/>
-        <path d="M12 8v8M8 12h8" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-      </svg>
-    ),
-    allowance: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M3 8a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" stroke={color} strokeWidth="1.5"/>
-        <circle cx="12" cy="12" r="2.5" stroke={color} strokeWidth="1.5"/>
-        <path d="M7 12h.5M16.5 12H17" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-      </svg>
-    ),
-    rental: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M3 11L12 4l9 7v9a1 1 0 01-1 1H4a1 1 0 01-1-1v-9z" stroke={color} strokeWidth="1.5"/>
-        <path d="M9 20v-5h6v5" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-        <path d="M12 8v2M11 9h2" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
-    ),
-    ofw: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M22 16.5A9 9 0 0112 21a9 9 0 01-9-9 9 9 0 019-9c1.6 0 3.1.4 4.4 1.1" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-        <path d="M19 8l3-5M22 3l-5 3" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-        <path d="M3 12h18" stroke={color} strokeWidth="1" opacity="0.4"/>
-        <path d="M12 3c-2 3-2 15 0 18M12 3c2 3 2 15 0 18" stroke={color} strokeWidth="1" opacity="0.4"/>
-      </svg>
-    ),
-    government: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M3 10L12 3l9 7H3z" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-        <path d="M5 10v10M9 10v10M15 10v10M19 10v10" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-        <path d="M3 20h18" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
-    ),
-    other: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="1.5"/>
-        <path d="M12 8v4l3 3" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
-  };
-  return icons[catId] || icons.other;
-}
 
 const TABS    = ['Lahat', 'Kita', 'Gastos'];
 const FILTERS = ['Lahat', 'Ngayon', 'Linggong Ito', 'Buwang Ito'];
@@ -204,7 +26,7 @@ export default function Transactions() {
   const initialTab = searchParams.get('tab') === 'income' ? 'Kita'
                    : searchParams.get('tab') === 'expense' ? 'Gastos' : 'Lahat';
 
-  const { transactions, setTransactions, addTransactionLocal, removeTransactionLocal, transactionsLoaded } = useStore();
+  const { transactions, setTransactions, addTransactionLocal, removeTransactionLocal, transactionsLoaded } = useStore((s) => ({ transactions: s.transactions, setTransactions: s.setTransactions, addTransactionLocal: s.addTransactionLocal, removeTransactionLocal: s.removeTransactionLocal, transactionsLoaded: s.transactionsLoaded, }), shallow);
 
   const [activeTab,    setActiveTab]    = useState(initialTab);
   const [activeFilter, setActiveFilter] = useState('Lahat');
@@ -216,9 +38,11 @@ export default function Transactions() {
     defaultValues: { date: new Date().toISOString().slice(0, 10) },
   });
 
+  // Fetch once per user session — see Dashboard.jsx for why deps stay [user] only.
   useEffect(() => {
     if (!user || transactionsLoaded) return;
     getTransactions(user.uid).then(txs => setTransactions(txs)).catch(console.error);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const filterTxs = (txs) => {
@@ -355,7 +179,7 @@ export default function Transactions() {
                 <HiArrowsRightLeft className="w-5 h-5 text-pw-muted" style={{ width: 20, height: 20 }} />
               </div>
               <p className="text-white font-semibold mb-1">Walang nakitang transaksyon</p>
-              <p className="text-pw-muted text-sm">Mag-tap ng "Dagdag" para magsimula.</p>
+              <p className="text-pw-muted text-sm">Mag-tap ng &ldquo;Dagdag&rdquo; para magsimula.</p>
             </div>
           ) : (
             <div className="glass overflow-hidden">
@@ -366,7 +190,7 @@ export default function Transactions() {
                     <div className={`flex items-center gap-3 px-4 py-3.5 ${i < displayed.length - 1 ? 'border-b border-white/[0.045]' : ''}`}>
                       <div className="icon-box-sm flex-shrink-0"
                         style={{ background: tx.type === 'income' ? 'rgba(16,185,129,0.10)' : 'rgba(244,63,94,0.10)' }}>
-                        <CatIcon catId={tx.category} size={15} color={tx.type === 'income' ? '#10B981' : '#F43F5E'} />
+                        <CategoryIcon id={tx.category} size={15} color={tx.type === 'income' ? '#10B981' : '#F43F5E'} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm font-medium truncate">{tx.description || cat.label}</p>
@@ -468,7 +292,7 @@ export default function Transactions() {
                                 : 'border-white/[0.07] bg-white/[0.03] hover:border-white/15 hover:bg-white/[0.06]'
                             }`}>
                               <div style={{ color: isSelected ? '#F5B731' : cat.color }}>
-                                <CatIcon catId={cat.id} size={18} color={isSelected ? '#F5B731' : cat.color} />
+                                <CategoryIcon id={cat.id} size={18} color={isSelected ? '#F5B731' : cat.color} />
                               </div>
                               <span className={`text-[9px] font-semibold text-center leading-tight ${isSelected ? 'text-pw-gold' : 'text-pw-muted'}`}>
                                 {cat.label}

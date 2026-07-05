@@ -256,7 +256,7 @@ export default function Register() {
         transition={{ delay: 0.5 }}
         className="text-pw-muted text-xs mt-6 text-center max-w-xs leading-relaxed"
       >
-        "Ang malaking ipon ay nagsisimula sa maliit na hakbang." 🇵🇭
+        &ldquo;Ang malaking ipon ay nagsisimula sa maliit na hakbang.&rdquo; 🇵🇭
       </motion.p>
     </div>
   );

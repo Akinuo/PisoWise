@@ -155,12 +155,19 @@ service cloud.firestore {
     match /otpTokens/{userId} {
       // User can read and delete their own OTP token
       allow read, delete: if isAuthenticated() && request.auth.uid == userId;
-      // User can create/overwrite their own OTP token (setDoc)
-      allow create, update: if isAuthenticated()
+      // User can create/overwrite their own OTP token (setDoc) — stores a SHA-256
+      // hash of the code, never the plaintext OTP itself.
+      allow create: if isAuthenticated()
         && request.auth.uid == userId
         && request.resource.data.userId == userId
-        && request.resource.data.otp is string
-        && request.resource.data.otp.size() == 6;
+        && request.resource.data.otpHash is string
+        && request.resource.data.otpHash.size() == 64
+        && request.resource.data.attempts == 0;
+      // Update is only used to bump the failed-attempt counter during verification.
+      allow update: if isAuthenticated()
+        && request.auth.uid == userId
+        && request.resource.data.otpHash == resource.data.otpHash
+        && request.resource.data.attempts == resource.data.attempts + 1;
     }
     
     // Block all other access

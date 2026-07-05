@@ -87,7 +87,7 @@ export default function VoiceInput({ onResult, compact = false }) {
               🎤 Nakikinig... magsalita na
             </p>
             <p className="text-pw-muted text-xs mt-1">
-              Hal: "Gastos ko ay dalawang daan para sa pagkain"
+              Hal: &ldquo;Gastos ko ay dalawang daan para sa pagkain&rdquo;
             </p>
           </motion.div>
         )}
@@ -96,7 +96,7 @@ export default function VoiceInput({ onResult, compact = false }) {
           <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
             <div className="glass-sm p-3">
               <p className="text-xs text-pw-muted mb-1">Narinig:</p>
-              <p className="text-white text-sm italic">"{transcript}"</p>
+              <p className="text-white text-sm italic">&ldquo;{transcript}&rdquo;</p>
             </div>
           </motion.div>
         )}

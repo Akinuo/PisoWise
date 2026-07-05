@@ -5,8 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
+import { shallow } from 'zustand/shallow';
 import { addCard, getCards, updateCard, deleteCard } from '../services/firebase';
-import { formatDate, maskCardNumber } from '../utils/formatters';
+import { maskCardNumber } from '../utils/formatters';
 import { CARD_TYPES, CARD_COLOR_SCHEMES } from '../utils/constants';
 import OTPModal from '../components/auth/OTPModal';
 import { Timestamp } from '../services/firebase';
@@ -289,7 +290,7 @@ function CreditCardVisual({ card, flipped = false }) {
 export default function Cards() {
   const { user }    = useAuth();
   const navigate    = useNavigate();
-  const { cards, setCards, cardsLoaded, addCardLocal, updateCardLocal, removeCardLocal } = useStore();
+  const { cards, setCards, cardsLoaded, addCardLocal, updateCardLocal, removeCardLocal } = useStore((s) => ({ cards: s.cards, setCards: s.setCards, cardsLoaded: s.cardsLoaded, addCardLocal: s.addCardLocal, updateCardLocal: s.updateCardLocal, removeCardLocal: s.removeCardLocal, }), shallow);
 
   const [showOTP,       setShowOTP]       = useState(false);
   const [otpPurpose,    setOtpPurpose]    = useState('add a card');

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
+import { shallow } from 'zustand/shallow';
 import { getTransactions, saveInsight, getInsights } from '../services/firebase';
 import { generateWeeklyInsights, chatWithCoach, explainHealthScore } from '../services/groq';
 import { calculateHealthScore, getHealthScoreInfo, formatPeso, formatDate, getCurrentMonthYear } from '../utils/formatters';
@@ -10,7 +11,7 @@ import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import {
   HiSparkles, HiArrowPath, HiPaperAirplane,
-  HiUser, HiChatBubbleLeftRight, HiChartBar,
+  HiChatBubbleLeftRight, HiChartBar,
   HiLightBulb, HiClock,
 } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
@@ -46,9 +47,7 @@ function ChatBubble({ msg }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function Insights() {
   const { user, profile } = useAuth();
-  const { transactions, setTransactions, transactionsLoaded, insights, setInsights,
-          addInsightLocal, savings, debts, chatHistory, addChatMessage, clearChatHistory,
-          getMonthlyStats, getTotalSavings, getTotalDebt } = useStore();
+  const { transactions, setTransactions, transactionsLoaded, insights, setInsights, addInsightLocal, savings, debts, chatHistory, addChatMessage, clearChatHistory, getMonthlyStats, getTotalSavings, getTotalDebt } = useStore((s) => ({ transactions: s.transactions, setTransactions: s.setTransactions, transactionsLoaded: s.transactionsLoaded, insights: s.insights, setInsights: s.setInsights, addInsightLocal: s.addInsightLocal, savings: s.savings, debts: s.debts, chatHistory: s.chatHistory, addChatMessage: s.addChatMessage, clearChatHistory: s.clearChatHistory, getMonthlyStats: s.getMonthlyStats, getTotalSavings: s.getTotalSavings, getTotalDebt: s.getTotalDebt, }), shallow);
 
   const [tab,         setTab]         = useState('insights'); // 'insights' | 'chat'
   const [genLoading,  setGenLoading]  = useState(false);
@@ -70,6 +69,7 @@ export default function Insights() {
   });
   const scoreInfo = getHealthScoreInfo(healthScore);
 
+  // Fetch once per user session — see Dashboard.jsx for why deps stay [user] only.
   useEffect(() => {
     if (!user) return;
     const load = async () => {
@@ -78,6 +78,7 @@ export default function Insights() {
       setInsights(ins);
     };
     load().catch(console.error);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   useEffect(() => {
@@ -95,8 +96,7 @@ export default function Insights() {
       });
       const result = await generateWeeklyInsights({
         transactions:   weekTxs,
-        monthlyBudget:  monthlyIncome,
-        monthlyIncome:  monthlyIncome,
+        monthlyIncome,
       });
       const ref = await saveInsight(user.uid, result, 'weekly');
       addInsightLocal({ id: ref.id, content: result, type: 'weekly', generatedAt: { toDate: () => new Date() } });

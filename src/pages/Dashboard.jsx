@@ -1,9 +1,11 @@
 // src/pages/Dashboard.jsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
+import { shallow } from 'zustand/shallow';
+import LoadingScreen from '../components/common/LoadingScreen';
 import {
   getTransactions, getSavingsGoals, getDebts, getInsights,
 } from '../services/firebase';
@@ -37,7 +39,13 @@ export default function Dashboard() {
     debts, setDebts, debtsLoaded,
     insights, setInsights,
     getMonthlyStats, getTotalSavings, getTotalDebt,
-  } = useStore();
+  } = useStore((s) => ({
+    transactions: s.transactions, setTransactions: s.setTransactions, transactionsLoaded: s.transactionsLoaded,
+    savings: s.savings, setSavings: s.setSavings, savingsLoaded: s.savingsLoaded,
+    debts: s.debts, setDebts: s.setDebts, debtsLoaded: s.debtsLoaded,
+    insights: s.insights, setInsights: s.setInsights,
+    getMonthlyStats: s.getMonthlyStats, getTotalSavings: s.getTotalSavings, getTotalDebt: s.getTotalDebt,
+  }), shallow);
 
   const [loading, setLoading] = useState(!transactionsLoaded);
 
@@ -45,6 +53,11 @@ export default function Dashboard() {
   const month = now.getMonth() + 1;
   const year  = now.getFullYear();
 
+  // Fetch once per user session — deliberately depends on [user] only. Each
+  // fetch is already individually guarded by its own `xLoaded` flag, and
+  // Zustand setters are stable, so adding them here would only cause this
+  // effect to re-fire (and re-fetch insights, which has no guard) every time
+  // one of the loaded flags flips from false to true during this same load.
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -65,25 +78,33 @@ export default function Dashboard() {
         setLoading(false);
       }
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const stats        = getMonthlyStats(year, month);
-  const totalSavings = getTotalSavings();
-  const totalDebt    = getTotalDebt();
+  // transactions/savings/debts aren't referenced lexically inside these
+  // callbacks (getMonthlyStats/getTotalSavings/getTotalDebt read them via
+  // Zustand's get() internally), but they must stay as deps — otherwise
+  // these values go stale whenever the underlying data changes. Don't remove.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stats        = useMemo(() => getMonthlyStats(year, month), [getMonthlyStats, year, month, transactions]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const totalSavings = useMemo(() => getTotalSavings(), [getTotalSavings, savings]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const totalDebt    = useMemo(() => getTotalDebt(), [getTotalDebt, debts]);
   const monthlyIncome = profile?.monthlyIncome || stats.income || 0;
 
-  const healthScore = calculateHealthScore({
+  const healthScore = useMemo(() => calculateHealthScore({
     monthlyIncome,
     monthlyExpenses: stats.expenses,
     totalSavings,
     totalDebt,
     savingsGoals: savings,
     debts,
-  });
+  }), [monthlyIncome, stats.expenses, totalSavings, totalDebt, savings, debts]);
   const scoreInfo = getHealthScoreInfo(healthScore);
 
-  const chartData = groupByDay(transactions, 7);
-  const recentTxs = transactions.slice(0, 5);
+  const chartData = useMemo(() => groupByDay(transactions, 7), [transactions]);
+  const recentTxs = useMemo(() => transactions.slice(0, 5), [transactions]);
   const balance   = stats.income - stats.expenses;
 
   const getCatLabel = (id, type) => {
@@ -94,6 +115,8 @@ export default function Dashboard() {
   const firstName = profile?.displayName?.split(' ')[0] || 'Kaibigan';
   const greeting  = now.getHours() < 12 ? 'Magandang umaga' : now.getHours() < 17 ? 'Magandang hapon' : 'Magandang gabi';
   const monthLabel = now.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' });
+
+  if (loading) return <LoadingScreen message="Kinukuha ang iyong datos…" />;
 
   return (
     <div className="page">
