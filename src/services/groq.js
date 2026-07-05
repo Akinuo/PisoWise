@@ -20,11 +20,35 @@ Key guidelines:
 - Be empathetic — many families struggle and need encouragement, not judgment`;
 
 /**
- * Core API call to Groq
+ * Core API call to Groq.
+ *
+ * Prefers a server-side proxy (VITE_GROQ_PROXY_URL) if one is configured —
+ * see /api/groq.js. This keeps the real API key off the client entirely.
+ * Falls back to calling Groq directly from the browser (VITE_GROQ_API_KEY)
+ * if no proxy is set up, which is what happens out of the box. That's fine
+ * to develop with, but means the key is visible in the shipped JS bundle —
+ * deploy the proxy before this app is handling real traffic.
  */
 const callGroq = async (messages, maxTokens = 1024) => {
+  const proxyUrl = import.meta.env.VITE_GROQ_PROXY_URL;
+  const fullMessages = [{ role: 'system', content: SYSTEM_CONTEXT }, ...messages];
+
+  if (proxyUrl) {
+    const response = await fetch(proxyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: fullMessages, max_tokens: maxTokens }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || `Groq proxy error: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim() ?? '';
+  }
+
   const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-  if (!apiKey) throw new Error('VITE_GROQ_API_KEY is not configured.');
+  if (!apiKey) throw new Error('Neither VITE_GROQ_PROXY_URL nor VITE_GROQ_API_KEY is configured.');
 
   const response = await fetch(GROQ_URL, {
     method: 'POST',
@@ -34,7 +58,7 @@ const callGroq = async (messages, maxTokens = 1024) => {
     },
     body: JSON.stringify({
       model:       GROQ_MODEL,
-      messages:    [{ role: 'system', content: SYSTEM_CONTEXT }, ...messages],
+      messages:    fullMessages,
       max_tokens:  maxTokens,
       temperature: 0.7,
       top_p:       0.9,

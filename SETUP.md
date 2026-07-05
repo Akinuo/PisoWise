@@ -70,6 +70,16 @@ npm install
 > **Free tier:** 30 requests/minute, 14,400 requests/day — sufficient for personal use.
 > Model: `llama-3.3-70b-versatile`
 
+> **Security note:** used directly (`VITE_GROQ_API_KEY`), this key ships inside the
+> client JS bundle — anyone can pull it out of devtools and rack up usage on your
+> account. Once you're past local development, deploy this app to Vercel (free
+> tier) and use `api/groq.js` as a server-side proxy instead: set `GROQ_API_KEY`
+> (no `VITE_` prefix) as a Vercel environment variable, then point
+> `VITE_GROQ_PROXY_URL` at your deployment's `/api/groq` endpoint. Firebase's
+> Spark plan has no Cloud Functions to do this on the Firebase side, so Vercel's
+> free functions are the easiest way to keep the key server-side without
+> upgrading to Blaze.
+
 ---
 
 ## Step 4 — EmailJS Setup (OTP Emails)
