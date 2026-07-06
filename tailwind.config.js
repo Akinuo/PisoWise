@@ -25,12 +25,15 @@ export default {
           'blue-glow':  'rgba(59,130,246,0.25)',
           'blue-dim':   'rgba(29,78,216,0.15)',
 
-          // Gold — Philippine sun, warmer & richer
-          gold:       '#F5B731',
-          'gold-bright': '#FBBF24',
-          'gold-light': '#FDE68A',
-          'gold-dim':   'rgba(245,183,49,0.12)',
-          'gold-muted': 'rgba(245,183,49,0.35)',
+          // Gold — Philippine sun, warmer & richer. These reference CSS
+          // custom properties (defined in index.css) so the accent color
+          // can be swapped at runtime via the [data-theme] attribute,
+          // without needing a full rebuild.
+          gold:       'var(--pw-gold)',
+          'gold-bright': 'var(--pw-gold-bright)',
+          'gold-light': 'var(--pw-gold-light)',
+          'gold-dim':   'var(--pw-gold-dim)',
+          'gold-muted': 'var(--pw-gold-muted)',
 
           // Semantic
           crimson:  '#DC2626',
@@ -64,8 +67,8 @@ export default {
       boxShadow: {
         'glass':    '0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
         'glass-lg': '0 12px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.07)',
-        'gold':     '0 0 28px rgba(245,183,49,0.30)',
-        'gold-lg':  '0 4px 32px rgba(245,183,49,0.40)',
+        'gold':     '0 0 28px rgba(var(--pw-gold-rgb), 0.30)',
+        'gold-lg':  '0 4px 32px rgba(var(--pw-gold-rgb), 0.40)',
         'blue':     '0 0 24px rgba(59,130,246,0.30)',
         'card':     '0 16px 48px rgba(0,0,0,0.50)',
         'nav':      '0 -1px 0 rgba(255,255,255,0.05), 0 -16px 32px rgba(0,0,0,0.4)',
@@ -108,7 +111,7 @@ export default {
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gold-gradient':   'linear-gradient(135deg, #F5B731 0%, #F59E0B 100%)',
+        'gold-gradient':   'linear-gradient(135deg, var(--pw-gold) 0%, var(--pw-gold-bright) 100%)',
         'blue-gradient':   'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)',
         'dark-gradient':   'linear-gradient(180deg, #080E1F 0%, #0D1526 100%)',
         'card-gradient':   'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)',

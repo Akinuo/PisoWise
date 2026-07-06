@@ -1,5 +1,5 @@
 // src/pages/Insights.jsx
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
@@ -7,6 +7,7 @@ import { shallow } from 'zustand/shallow';
 import { getTransactions, saveInsight, getInsights } from '../services/firebase';
 import { generateWeeklyInsights, chatWithCoach, explainHealthScore } from '../services/groq';
 import { calculateHealthScore, getHealthScoreInfo, formatPeso, formatDate, getCurrentMonthYear } from '../utils/formatters';
+import { generateProactiveTips } from '../utils/spendingTrends';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import {
@@ -68,6 +69,11 @@ export default function Insights() {
     totalSavings, totalDebt, savingsGoals: savings, debts,
   });
   const scoreInfo = getHealthScoreInfo(healthScore);
+
+  const proactiveTips = useMemo(
+    () => generateProactiveTips({ transactions, savings, debts, monthlyIncome }),
+    [transactions, savings, debts, monthlyIncome]
+  );
 
   // Fetch once per user session — see Dashboard.jsx for why deps stay [user] only.
   useEffect(() => {
@@ -241,6 +247,26 @@ export default function Insights() {
                     </div>
                   ))}
                 </div>
+
+                {/* Proactive Tips — instant, no AI call needed */}
+                {proactiveTips.length > 0 && (
+                  <div className="space-y-2">
+                    {proactiveTips.map((tip, i) => (
+                      <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className={`glass-sm p-3.5 flex items-start gap-3 ${
+                          tip.type === 'warning'  ? 'border-pw-amber/25' :
+                          tip.type === 'positive' ? 'border-pw-emerald/25' : ''
+                        }`}>
+                        <span className="text-lg flex-shrink-0 leading-none mt-0.5">{tip.icon}</span>
+                        <p className={`text-xs leading-relaxed ${
+                          tip.type === 'warning'  ? 'text-pw-amber' :
+                          tip.type === 'positive' ? 'text-pw-emerald' : 'text-white/80'
+                        }`}>{tip.message}</p>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Generate Insight */}
                 <div className="glass p-4">

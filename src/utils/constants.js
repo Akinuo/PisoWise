@@ -361,6 +361,158 @@ Simula sa PAG-IBIG MP2 — ligtas, government-backed, at may magandang returns p
       { q: 'Ano ang unang dapat ayusin bago mag-invest?', options: ['Bumili ng stocks', 'Mag-ipon ng emergency fund', 'Kumuha ng credit card', 'Mag-invest sa crypto'], answer: 1 },
     ],
   },
+  {
+    id: 'ofw_money_management',
+    title: 'Pera Management para sa OFW at Pamilya',
+    titleEn: 'OFW Money Management',
+    description: 'Paano pinakamahusay na gamitin ang padala para sa buong pamilya.',
+    icon: '✈️',
+    color: '#06B6D4',
+    duration: '6 min',
+    level: 'Baguhan',
+    sections: [
+      {
+        heading: 'Ang Hamon ng Padala',
+        body: `Milyun-milyong pamilyang Pilipino ang umaasa sa padala ng OFW. Pero ang malaking hamon: kadalasan, nauubos agad ang padala sa mga gastusin, walang natitirang ipon.
+
+Ang totoo: Ang padala ay dapat gamitin hindi lang para sa araw-araw na gastos, kundi para rin sa hinaharap ng buong pamilya.`,
+      },
+      {
+        heading: 'Ang 3-Sobre na Sistema',
+        body: `Hatiin ang padala sa tatlong "sobre" (o bank accounts):
+
+• SOBRE 1 — Pang-araw-araw (60-70%): pagkain, bills, eskwela ng mga bata
+• SOBRE 2 — Ipon at Emergency Fund (15-20%): para sa sakit, aksidente, o kung matigil ang padala
+• SOBRE 3 — Investment/Negosyo (15-20%): PAG-IBIG MP2, maliit na negosyo, o insurance
+
+Ipaliwanag ito sa pamilyang tatanggap ng padala — dapat malinaw sa lahat kung paano ito gagamitin.`,
+      },
+      {
+        heading: 'Mga Dapat Iwasan',
+        body: `❌ 100% pang-gastusin ang buong padala — walang natitira kailanman
+❌ Walang malinaw na "budget manager" sa pamilya — magulo ang paggamit
+❌ Hindi kasama ang sarili ng OFW sa financial planning — dapat may say din
+❌ Walang backup plan kung matigil ang trabaho o kontrata
+
+✅ Gumamit ng app tulad ng PisoWise para ma-track ang padala at gastos, kahit malayo ang OFW.`,
+      },
+      {
+        heading: 'Pag-invest Habang Nasa Ibang Bansa',
+        body: `Bilang OFW, may mga espesyal na opsyon ka:
+
+• Pag-IBIG MP2 — pwedeng mag-contribute kahit nasa abroad
+• OFW Bank Accounts — may mga bangko na may espesyal na savings account para sa OFW na may mataas na interest
+• SSS Flexi Fund — retirement savings program para sa OFW
+• Direktang pag-invest gamit ang mobile apps (halimbawa: GCash, Maya investment features)
+
+Simulan habang malakas pa ang trabaho — mas maaga, mas malaki ang tutubuin.`,
+      },
+    ],
+    quiz: [
+      { q: 'Sa 3-Sobre na Sistema, ilang porsyento ang para sa Ipon/Emergency Fund?', options: ['5-10%', '15-20%', '40-50%', '80-90%'], answer: 1 },
+      { q: 'Ano ang Pag-IBIG MP2 na relevant sa OFW?', options: ['Uri ng utang', 'Pwede pa ring i-contribute kahit abroad', 'Para sa mga bata lang', 'Kailangan munang umuwi'], answer: 1 },
+    ],
+  },
+  {
+    id: 'insurance_sss_philhealth',
+    title: 'Pag-unawa sa Insurance, SSS, at PhilHealth',
+    titleEn: 'Insurance, SSS & PhilHealth Basics',
+    description: 'Proteksyon para sa pamilya kung sakaling may mangyari.',
+    icon: '🛡️',
+    color: '#8B5CF6',
+    duration: '6 min',
+    level: 'Baguhan',
+    sections: [
+      {
+        heading: 'Bakit Kailangan ng Proteksyon?',
+        body: `Ang budgeting at savings ay mabuti, pero paano kung biglang magkasakit o mawalan ng trabaho? Dito papasok ang tinatawag na "proteksyon" — insurance at government programs.
+
+Iniisip ng marami na "sayang lang ang pera sa insurance" — pero ang totoo, ito ang huling linya ng depensa laban sa malaking pinansyal na krisis.`,
+      },
+      {
+        heading: 'SSS (Social Security System)',
+        body: `Para sa mga nagtatrabaho sa private sector o self-employed:
+
+• Sickness Benefit — cash benefit kung magkasakit ka at hindi makapasok
+• Maternity Benefit — para sa mga buntis
+• Disability at Retirement — pension kapag nag-retire o nagkaroon ng disability
+• Death/Funeral Benefit — tulong sa pamilya kung mamatay ang miyembro
+
+Dapat regular ang contribution para hindi maputol ang benefits.`,
+      },
+      {
+        heading: 'PhilHealth',
+        body: `Ang national health insurance ng Pilipinas — tumutulong sa gastusin sa ospital.
+
+• Sakop nito ang confinement sa ospital, ilang klaseng operasyon, at outpatient services
+• May "No Balance Billing" para sa mga indigent at senior citizens sa government hospitals
+• Regular contribution = walang problema sa paggamit ng benefits kapag kinailangan
+
+Tip: Laging dalhin ang PhilHealth ID/number kapag pumupunta sa ospital.`,
+      },
+      {
+        heading: 'Life at Health Insurance (Private)',
+        body: `Bukod sa SSS at PhilHealth, maaari ring mag-avail ng private insurance:
+
+• Term Life Insurance — mas mura, nagbibigay ng malaking proteksyon sa pamilya kung may mangyari sa iyo
+• Health/HMO cards — karagdagang proteksyon sa gastusing medikal
+• Huwag paghaluin ang insurance at investment — mas malinaw at mas mura kung hiwalay ang dalawa
+
+Simpleng tanong bago kumuha ng insurance: "Kung mawala ako bukas, paano mabubuhay ang aking pamilya?" Doon nagsisimula ang tamang proteksyon.`,
+      },
+    ],
+    quiz: [
+      { q: 'Alin ang tumutulong sa gastusin sa ospital?', options: ['SSS', 'PhilHealth', 'Pag-IBIG', 'BIR'], answer: 1 },
+      { q: 'Ano ang benepisyo ng SSS kung magkasakit at hindi makapasok sa trabaho?', options: ['Retirement Benefit', 'Sickness Benefit', 'Maternity Benefit', 'Death Benefit'], answer: 1 },
+    ],
+  },
+  {
+    id: 'avoiding_scams',
+    title: 'Pag-iwas sa Scam at Panloloko',
+    titleEn: 'Avoiding Financial Scams',
+    description: 'Kilalanin ang mga karaniwang panloloko at paano mag-ingat.',
+    icon: '🚨',
+    color: '#F43F5E',
+    duration: '5 min',
+    level: 'Baguhan',
+    sections: [
+      {
+        heading: 'Bakit Kailangan Mag-ingat',
+        body: `Ang mga scammer ay lalong nagiging kreatibo, lalo na sa social media at text messages. Kadalasan, target nila ang mga taong gustong dumami ang pera nang mabilis, o natatakot mawala ang kanilang pera/account.
+
+Ang unang linya ng depensa: KAALAMAN. Kung alam mo ang mga pattern ng scam, mas mahirap kang biktimahin.`,
+      },
+      {
+        heading: 'Mga Karaniwang Scam sa Pilipinas',
+        body: `• Investment Scam / Ponzi — "Double your money in 30 days!" — kung sobrang ganda para maging totoo, hindi ito totoo
+• Smishing (Text Scam) — "Nanalo ka ng GCash promo, i-click ang link" — huwag i-click ang mga hindi kilalang link
+• Fake Bank/GCash Reps — tumatawag o nag-text na "verify" ang account, hihingi ng OTP — HUWAG KAILANMAN ibigay ang OTP kahit kanino
+• Loan Scam — "instant approval" na loan apps na sobrang taas ng interest o humihingi ng advance fee bago pa lumabas ang pera`,
+      },
+      {
+        heading: 'Mga Palatandaan ng Scam',
+        body: `🚩 Sobrang bilis, walang risk, guaranteed na kita
+🚩 May pressure na "ngayon na lang" o "limited time"
+🚩 Hihingi ng personal info, OTP, o password
+🚩 Kailangan mag-recruit pa ng iba para kumita (pyramid scheme)
+🚩 Walang legit na SEC registration (pwedeng i-check sa SEC website)`,
+      },
+      {
+        heading: 'Paano Protektahan ang Sarili',
+        body: `1. HUWAG KAILANMAN ibahagi ang OTP, PIN, o password — kahit sino pa ang tumawag
+2. I-verify muna sa opisyal na app o website bago maniwala sa anumang alok
+3. Kung sobrang ganda para maging totoo, malamang scam ito
+4. I-check ang SEC Advisory list (sec.gov.ph) bago mag-invest sa kahit anong "investment company"
+5. Kausapin ang pamilya bago gumawa ng malaking desisyon sa pera
+
+Tandaan: Walang legit na bangko o kumpanya ang hihingi ng OTP mo. Kung may humingi, 100% scam iyon.`,
+      },
+    ],
+    quiz: [
+      { q: 'Dapat mo bang ibigay ang OTP kung tumawag ang "bank representative"?', options: ['Oo, kung totoong bangko sila', 'Hindi, kailanman', 'Oo, kung may ID sila', 'Depende sa halaga'], answer: 1 },
+      { q: 'Ano ang isang palatandaan ng investment scam?', options: ['May SEC registration', 'Guaranteed at napakabilis na kita', 'Mababang interest rate', 'Regular na financial report'], answer: 1 },
+    ],
+  },
 ];
 
 // ─── Financial Health Score Thresholds ────────────────────────────────────

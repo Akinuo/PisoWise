@@ -38,7 +38,7 @@ export default function BottomNav() {
                       width: 52,
                       height: 52,
                       background: isActive
-                        ? 'linear-gradient(135deg, #F5B731 0%, #F59E0B 100%)'
+                        ? 'linear-gradient(135deg, var(--pw-gold) 0%, var(--pw-gold-bright) 100%)'
                         : 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)',
                       boxShadow: isActive
                         ? '0 4px 20px rgba(245,183,49,0.45), 0 0 0 1px rgba(255,255,255,0.10) inset'
@@ -72,14 +72,14 @@ export default function BottomNav() {
                         width: 20,
                         height: 20,
                         position: 'relative',
-                        color: isActive ? '#F5B731' : 'rgba(255,255,255,0.40)',
+                        color: isActive ? 'var(--pw-gold)' : 'rgba(255,255,255,0.40)',
                         transition: 'color 0.18s',
                       }}
                     />
                   </div>
                   <span
                     className="text-[10px] font-semibold tracking-tight transition-colors duration-200"
-                    style={{ color: isActive ? '#F5B731' : 'rgba(255,255,255,0.40)' }}
+                    style={{ color: isActive ? 'var(--pw-gold)' : 'rgba(255,255,255,0.40)' }}
                   >
                     {label}
                   </span>

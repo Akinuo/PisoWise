@@ -3,11 +3,12 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LESSONS } from '../utils/constants';
+import { recordStreakActivity, getActiveStreak, getStreakData, getEarnedBadges } from '../utils/lessonStreaks';
 import { answerFinancialQuestion } from '../services/groq';
 import {
   HiAcademicCap, HiChevronRight, HiChevronLeft,
   HiCheckCircle, HiXCircle, HiSparkles, HiArrowLeft,
-  HiClock, HiStar, HiQuestionMarkCircle,
+  HiClock, HiStar, HiQuestionMarkCircle, HiFire,
 } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
@@ -143,6 +144,11 @@ export default function Lessons() {
   const [completed,      setCompleted]      = useState(() => {
     try { return JSON.parse(localStorage.getItem('pw_completed_lessons') || '[]'); } catch { return []; }
   });
+  const [perfectLessons, setPerfectLessons] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('pw_perfect_lessons') || '[]'); } catch { return []; }
+  });
+  const [streak, setStreak] = useState(() => getActiveStreak());
+  const [longestStreak, setLongestStreak] = useState(() => getStreakData().longestStreak || 0);
   const [aiQuestion, setAiQuestion] = useState('');
   const [aiAnswer,   setAiAnswer]   = useState('');
   const [aiLoading,  setAiLoading]  = useState(false);
@@ -157,12 +163,50 @@ export default function Lessons() {
 
   const lesson = LESSONS.find(l => l.id === activeLessonId);
 
+  const badgeContext = {
+    completedCount: completed.length,
+    totalLessons: LESSONS.length,
+    longestStreak,
+    hasPerfectScore: perfectLessons.length > 0,
+  };
+  const earnedBadges = getEarnedBadges(badgeContext);
+
   const handleComplete = (score, total) => {
-    if (score / total >= 0.75) {
-      const updated = [...new Set([...completed, activeLessonId])];
-      setCompleted(updated);
-      try { localStorage.setItem('pw_completed_lessons', JSON.stringify(updated)); } catch { /* localStorage unavailable — progress still updates in memory for this session */ }
+    const passed  = score / total >= 0.75;
+    const perfect = score === total;
+    const prevBadgeIds = new Set(earnedBadges.map(b => b.id));
+
+    let nextCompleted = completed;
+    let nextStreak = streak;
+    let nextLongest = longestStreak;
+    let nextPerfect = perfectLessons;
+
+    if (passed) {
+      nextCompleted = [...new Set([...completed, activeLessonId])];
+      setCompleted(nextCompleted);
+      try { localStorage.setItem('pw_completed_lessons', JSON.stringify(nextCompleted)); } catch { /* localStorage unavailable — progress still updates in memory for this session */ }
+
+      const newStreakData = recordStreakActivity();
+      nextStreak  = newStreakData.currentStreak;
+      nextLongest = newStreakData.longestStreak;
+      setStreak(nextStreak);
+      setLongestStreak(nextLongest);
     }
+    if (perfect) {
+      nextPerfect = [...new Set([...perfectLessons, activeLessonId])];
+      setPerfectLessons(nextPerfect);
+      try { localStorage.setItem('pw_perfect_lessons', JSON.stringify(nextPerfect)); } catch { /* ignore */ }
+    }
+
+    const nextBadges = getEarnedBadges({
+      completedCount: nextCompleted.length,
+      totalLessons: LESSONS.length,
+      longestStreak: nextLongest,
+      hasPerfectScore: nextPerfect.length > 0,
+    });
+    nextBadges
+      .filter(b => !prevBadgeIds.has(b.id))
+      .forEach(b => toast.success(`${b.emoji} Bagong Badge: ${b.name}!`, { duration: 4000 }));
   };
 
   const askAI = async () => {
@@ -310,6 +354,36 @@ export default function Lessons() {
               {completed.length}/{LESSONS.length} aralin na nakumpleto
             </p>
           </div>
+
+          {/* Streak */}
+          {streak > 0 && (
+            <div className="glass p-3.5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-pw-amber-dim flex items-center justify-center flex-shrink-0">
+                <HiFire className="w-5 h-5 text-pw-amber" />
+              </div>
+              <div>
+                <p className="text-white text-sm font-semibold">{streak}-Araw na Streak!</p>
+                <p className="text-pw-muted text-xs">Magpatuloy — mag-aral ulit bukas para hindi maputol.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Badges */}
+          {earnedBadges.length > 0 && (
+            <div className="glass p-4">
+              <p className="text-xs text-pw-muted font-semibold uppercase tracking-wide mb-3">Mga Nakuhang Badge</p>
+              <div className="flex gap-2.5 flex-wrap">
+                {earnedBadges.map(b => (
+                  <div key={b.id} className="flex flex-col items-center gap-1 w-16" title={b.name}>
+                    <div className="w-12 h-12 rounded-2xl bg-pw-gold-dim border border-pw-gold/25 flex items-center justify-center text-xl">
+                      {b.emoji}
+                    </div>
+                    <p className="text-[9px] text-pw-muted text-center leading-tight">{b.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Progress */}
           <div className="glass p-4">

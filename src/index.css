@@ -2,6 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Accent Theme Variables ──────────────────────────────────────────────
+   The "gold" family below is PisoWise's primary/brand accent — used for
+   primary buttons, active states, and main CTAs throughout the app via
+   Tailwind classes like bg-pw-gold, text-pw-gold, etc. Overriding these
+   variables via [data-theme] changes that accent app-wide without a
+   rebuild. Semantic colors (emerald=success, rose=error, amber=warning)
+   are intentionally NOT part of this system — they keep their meaning
+   regardless of which accent theme is selected. Applied via
+   src/utils/theme.js, picked in Profile > Settings.
+   ────────────────────────────────────────────────────────────────────── */
+:root {
+  --pw-gold: #F5B731;
+  --pw-gold-bright: #FBBF24;
+  --pw-gold-light: #FDE68A;
+  --pw-gold-dim: rgba(245, 183, 49, 0.12);
+  --pw-gold-muted: rgba(245, 183, 49, 0.35);
+  --pw-gold-rgb: 245, 183, 49;
+}
+
+[data-theme="blue"] {
+  --pw-gold: #3B82F6;
+  --pw-gold-bright: #60A5FA;
+  --pw-gold-light: #BFDBFE;
+  --pw-gold-dim: rgba(59, 130, 246, 0.12);
+  --pw-gold-muted: rgba(59, 130, 246, 0.35);
+  --pw-gold-rgb: 59, 130, 246;
+}
+
+[data-theme="emerald"] {
+  --pw-gold: #10B981;
+  --pw-gold-bright: #34D399;
+  --pw-gold-light: #A7F3D0;
+  --pw-gold-dim: rgba(16, 185, 129, 0.12);
+  --pw-gold-muted: rgba(16, 185, 129, 0.35);
+  --pw-gold-rgb: 16, 185, 129;
+}
+
+[data-theme="purple"] {
+  --pw-gold: #8B5CF6;
+  --pw-gold-bright: #A78BFA;
+  --pw-gold-light: #DDD6FE;
+  --pw-gold-dim: rgba(139, 92, 246, 0.12);
+  --pw-gold-muted: rgba(139, 92, 246, 0.35);
+  --pw-gold-rgb: 139, 92, 246;
+}
+
+
 /* ─── Base Reset ──────────────────────────────────────────────────────────── */
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }

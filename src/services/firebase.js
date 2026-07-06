@@ -436,6 +436,14 @@ export const getBudget = async (userId, month, year) => {
   return snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() };
 };
 
+// No orderBy — a user's budget history is at most one doc per month, so it's
+// always a small list. Sorted client-side to avoid needing a composite index.
+export const getBudgetHistory = async (userId) => {
+  const q = query(collection(db, 'budgets'), where('userId', '==', userId));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+};
+
 // ─── FCM Push Notifications ───────────────────────────────────────────────
 export const requestFCMPermission = async (userId) => {
   if (!messaging) return null;

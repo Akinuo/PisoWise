@@ -6,13 +6,15 @@ import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
 import { shallow } from 'zustand/shallow';
 import { calculateHealthScore, getHealthScoreInfo, formatPeso } from '../utils/formatters';
-import { requestFCMPermission } from '../services/firebase';
+import { requestFCMPermission, getTransactions, getSavingsGoals, getDebts, getCards, getInsights, getRecurringTransactions } from '../services/firebase';
+import { exportFullBackup } from '../utils/dataBackup';
+import { THEMES, applyTheme, getStoredTheme } from '../utils/theme';
 import toast from 'react-hot-toast';
 import {
   HiUser, HiEnvelope, HiBanknotes, HiBell,
   HiArrowRightOnRectangle, HiPencil,
   HiShieldCheck, HiDevicePhoneMobile, HiChartBar,
-  HiAcademicCap, HiCreditCard,
+  HiAcademicCap, HiCreditCard, HiArrowDownTray, HiSwatch,
 } from 'react-icons/hi2';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 
@@ -23,6 +25,8 @@ export default function Profile() {
   const [editing, setEditing]     = useState(false);
   const [saving,  setSaving]      = useState(false);
   const [fcmEnabled, setFcmEnabled] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState(() => getStoredTheme());
+  const [backingUp, setBackingUp] = useState(false);
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm();
   const now  = new Date();
@@ -72,6 +76,35 @@ export default function Profile() {
       if (token) { setFcmEnabled(true); toast.success('Naka-on na ang notifications!'); }
       else toast.error('Hindi maaaring i-enable ang notifications.');
     } catch { toast.error('Notifications permission denied.'); }
+  };
+
+  const handleThemeChange = (themeId) => {
+    applyTheme(themeId);
+    setCurrentTheme(themeId);
+  };
+
+  const handleBackup = async () => {
+    if (!user) return;
+    setBackingUp(true);
+    try {
+      const [txs, savingsGoals, userDebts, userCards, userInsights, recurring] = await Promise.all([
+        getTransactions(user.uid, 5000),
+        getSavingsGoals(user.uid),
+        getDebts(user.uid),
+        getCards(user.uid),
+        getInsights(user.uid, 100),
+        getRecurringTransactions(user.uid),
+      ]);
+      exportFullBackup({
+        profile, transactions: txs, savings: savingsGoals, debts: userDebts,
+        cards: userCards, recurringTransactions: recurring, insights: userInsights,
+      });
+      toast.success('Na-download ang backup!');
+    } catch {
+      toast.error('Hindi na-backup. Subukan ulit.');
+    } finally {
+      setBackingUp(false);
+    }
   };
 
   const completedLessons = (() => {
@@ -195,6 +228,44 @@ export default function Profile() {
           <div>
             <p className="section-title">Mga Setting</p>
             <div className="glass overflow-hidden">
+              {/* Theme picker */}
+              <div className="flex items-center gap-3 p-4 border-b border-white/05">
+                <div className="w-9 h-9 rounded-2xl bg-pw-subtle flex items-center justify-center flex-shrink-0">
+                  <HiSwatch className="w-4 h-4 text-pw-muted" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium">Accent Color</p>
+                  <p className="text-pw-muted text-xs">Piliin ang kulay ng buong app</p>
+                </div>
+                <div className="flex gap-1.5 flex-shrink-0">
+                  {THEMES.map(t => (
+                    <button key={t.id} onClick={() => handleThemeChange(t.id)}
+                      aria-label={t.label}
+                      className="w-6 h-6 rounded-full flex items-center justify-center transition-transform"
+                      style={{
+                        background: t.color,
+                        border: currentTheme === t.id ? '2px solid white' : '2px solid transparent',
+                        transform: currentTheme === t.id ? 'scale(1.1)' : 'scale(1)',
+                      }} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Data backup */}
+              <div className="flex items-center gap-3 p-4 border-b border-white/05">
+                <div className="w-9 h-9 rounded-2xl bg-pw-subtle flex items-center justify-center flex-shrink-0">
+                  <HiArrowDownTray className="w-4 h-4 text-pw-muted" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium">I-backup ang Data</p>
+                  <p className="text-pw-muted text-xs truncate">I-download ang lahat ng iyong data bilang JSON</p>
+                </div>
+                <button onClick={handleBackup} disabled={backingUp}
+                  className="text-xs text-pw-blue-light hover:underline flex-shrink-0 disabled:opacity-50">
+                  {backingUp ? 'Ginagawa...' : 'I-download'}
+                </button>
+              </div>
+
               {[
                 {
                   icon: HiBell, label: 'Push Notifications',

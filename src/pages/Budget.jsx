@@ -4,12 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
 import { shallow } from 'zustand/shallow';
-import { saveBudget, getBudget, getTransactions } from '../services/firebase';
+import { saveBudget, getBudget, getBudgetHistory, getTransactions } from '../services/firebase';
 import { generateBudget } from '../services/groq';
 import { formatPeso, parsePesoInput, getCurrentMonthYear, getPercent } from '../utils/formatters';
+import { computeCategoryLimits } from '../utils/budgetAlerts';
 import { EXPENSE_CATEGORIES, MONTHS_PH } from '../utils/constants';
 import {
-  HiSparkles, HiUsers, HiDocumentText, HiArrowPath,
+  HiSparkles, HiUsers, HiDocumentText, HiArrowPath, HiClock,
 } from 'react-icons/hi2';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import toast from 'react-hot-toast';
@@ -18,7 +19,7 @@ const CHART_COLORS = ['#F7C13A','#3B82F6','#10B981','#F43F5E','#8B5CF6','#F97316
 
 export default function Budget() {
   const { user, profile } = useAuth();
-  const { transactions, setTransactions, transactionsLoaded, setActiveBudget } = useStore((s) => ({ transactions: s.transactions, setTransactions: s.setTransactions, transactionsLoaded: s.transactionsLoaded, setActiveBudget: s.setActiveBudget, }), shallow);
+  const { transactions, setTransactions, transactionsLoaded, activeBudget, setActiveBudget } = useStore((s) => ({ transactions: s.transactions, setTransactions: s.setTransactions, transactionsLoaded: s.transactionsLoaded, activeBudget: s.activeBudget, setActiveBudget: s.setActiveBudget, }), shallow);
 
   const { month, year } = getCurrentMonthYear();
   const [income,      setIncome]      = useState(String(profile?.monthlyIncome || ''));
@@ -27,6 +28,9 @@ export default function Budget() {
   const [aiResult,    setAiResult]    = useState('');
   const [generating,  setGenerating]  = useState(false);
   const [saving,      setSaving]      = useState(false);
+  const [history,      setHistory]      = useState([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [showHistory,   setShowHistory]   = useState(false);
 
   // Load transactions and existing budget
   // Fetch once per user session — see Dashboard.jsx for why deps stay [user] only.
@@ -57,12 +61,26 @@ export default function Budget() {
 
   const totalExpenses = Object.values(expenseSummary).reduce((s, v) => s + v, 0);
   const incomeNum     = parsePesoInput(income);
+  const activeCategoryLimits =
+    (activeBudget?.month === month && activeBudget?.year === year) ? (activeBudget.categoryLimits || {}) : {};
 
   // Chart data
   const chartData = Object.entries(expenseSummary).map(([cat, val]) => ({
     name:  EXPENSE_CATEGORIES.find(c => c.id === cat)?.label || cat,
     value: val,
   })).sort((a, b) => b.value - a.value).slice(0, 8);
+
+  const loadHistory = async () => {
+    setShowHistory(true);
+    if (historyLoaded || !user) return;
+    try {
+      const all = await getBudgetHistory(user.uid);
+      setHistory(all.sort((a, b) => (b.year - a.year) || (b.month - a.month)));
+      setHistoryLoaded(true);
+    } catch {
+      toast.error('Hindi na-load ang kasaysayan.');
+    }
+  };
 
   // ── Generate AI Budget ─────────────────────────────────────────────────
   const handleGenerate = async () => {
@@ -93,14 +111,18 @@ export default function Budget() {
     if (!aiResult) return;
     setSaving(true);
     try {
+      const categoryLimits = computeCategoryLimits(expenseSummary, incomeNum);
       await saveBudget(user.uid, {
         month, year,
         totalIncome:   incomeNum,
         totalExpenses,
         categories:    expenseSummary,
+        categoryLimits,
         aiContent:     aiResult,
         familySize:    Number(familySize),
       });
+      setActiveBudget({ month, year, totalIncome: incomeNum, totalExpenses, categories: expenseSummary, categoryLimits, aiContent: aiResult });
+      setHistoryLoaded(false); // force a refresh next time history is opened
       toast.success('Budget na-save!');
     } catch (e) {
       toast.error('Hindi na-save. Subukan ulit.');
@@ -140,14 +162,20 @@ export default function Budget() {
       <div className="page-content">
         <div className="space-y-4">
           {/* Header */}
-          <div className="pt-2">
-            <div className="flex items-center gap-2 mb-1">
-              <HiSparkles className="w-5 h-5 text-pw-gold" />
-              <h1 className="font-display text-2xl font-bold text-white">AI Budget</h1>
+          <div className="pt-2 flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <HiSparkles className="w-5 h-5 text-pw-gold" />
+                <h1 className="font-display text-2xl font-bold text-white">AI Budget</h1>
+              </div>
+              <p className="text-pw-muted text-sm">
+                {MONTHS_PH[month - 1]} {year} — Hayaan ang AI na gumawa ng budget para sa inyo
+              </p>
             </div>
-            <p className="text-pw-muted text-sm">
-              {MONTHS_PH[month - 1]} {year} — Hayaan ang AI na gumawa ng budget para sa inyo
-            </p>
+            <button onClick={loadHistory}
+              className="btn-secondary py-2 px-3 text-xs gap-1.5 flex-shrink-0">
+              <HiClock className="w-3.5 h-3.5" /> Kasaysayan
+            </button>
           </div>
 
           {/* This month's expense breakdown */}
@@ -191,6 +219,32 @@ export default function Budget() {
                     </div>
                   ))}
                 </div>
+
+                {/* Category limits vs. current spending — only shows once a budget with limits has been saved */}
+                {Object.keys(activeCategoryLimits).length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-white/08 space-y-2.5">
+                    <p className="text-xs text-pw-muted font-semibold uppercase tracking-wide mb-1">Budget Limits Ngayong Buwan</p>
+                    {Object.entries(activeCategoryLimits).map(([cat, limitAmt]) => {
+                      const spent = expenseSummary[cat] || 0;
+                      const pct = Math.min(100, Math.round((spent / limitAmt) * 100));
+                      const isOver = spent > limitAmt;
+                      return (
+                        <div key={cat}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-white/80">{EXPENSE_CATEGORIES.find(c => c.id === cat)?.label || cat}</span>
+                            <span className={`text-[11px] font-medium ${isOver ? 'text-pw-rose' : 'text-pw-muted'}`}>
+                              {formatPeso(spent, 0)} / {formatPeso(limitAmt, 0)}
+                            </span>
+                          </div>
+                          <div className="progress-bar h-1.5">
+                            <div className={`progress-fill ${isOver ? 'bg-pw-rose' : pct >= 90 ? 'bg-pw-amber' : 'bg-pw-emerald'}`}
+                              style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
@@ -316,6 +370,61 @@ export default function Budget() {
           </div>
         </div>
       </div>
+
+      {/* ── Budget History Modal ── */}
+      <AnimatePresence>
+        {showHistory && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50" onClick={() => setShowHistory(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: '100%' }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: '100%' }}
+              transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+              className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl px-6 pt-6 max-h-[85dvh] overflow-y-auto sheet-modal"
+              style={{ background: 'rgba(12,22,40,0.98)', backdropFilter: 'blur(28px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-5" />
+              <div className="flex items-center gap-2 mb-5">
+                <HiClock className="w-5 h-5 text-pw-gold" />
+                <h2 className="font-display text-xl font-bold text-white">Kasaysayan ng Budget</h2>
+              </div>
+
+              {history.length === 0 ? (
+                <p className="text-pw-muted text-sm text-center py-8">Wala pang naitalang budget sa nakaraan.</p>
+              ) : (
+                <div className="space-y-2.5 pb-2">
+                  {history.map(b => {
+                    const over = b.totalIncome > 0 && b.totalExpenses > b.totalIncome;
+                    return (
+                      <div key={b.id} className="glass-sm p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-white text-sm font-semibold">{MONTHS_PH[b.month - 1]} {b.year}</p>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${over ? 'bg-pw-rose-dim text-pw-rose' : 'bg-pw-emerald-dim text-pw-emerald'}`}>
+                            {over ? 'Over Budget' : 'Nasa Budget'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <p className="text-pw-muted">Kita</p>
+                            <p className="text-white font-semibold">{formatPeso(b.totalIncome, 0)}</p>
+                          </div>
+                          <div>
+                            <p className="text-pw-muted">Gastos</p>
+                            <p className="text-white font-semibold">{formatPeso(b.totalExpenses, 0)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <button onClick={() => setShowHistory(false)} className="btn-secondary w-full mt-4 mb-2">
+                Isara
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

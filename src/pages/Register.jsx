@@ -62,9 +62,9 @@ export default function Register() {
         <div
           className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold mb-4"
           style={{
-            background: 'linear-gradient(135deg, #F5B731 0%, #F59E0B 100%)',
+            background: 'linear-gradient(135deg, var(--pw-gold) 0%, var(--pw-gold-bright) 100%)',
             color: '#080E1F',
-            boxShadow: '0 8px 32px rgba(245,183,49,0.35)',
+            boxShadow: '0 8px 32px rgba(var(--pw-gold-rgb), 0.35)',
             fontFamily: 'JetBrains Mono, monospace',
           }}
         >

@@ -6,12 +6,13 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
 import { shallow } from 'zustand/shallow';
-import { addTransaction, deleteTransaction, getTransactions } from '../services/firebase';
+import { addTransaction, deleteTransaction, getTransactions, getBudget } from '../services/firebase';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants';
 import CategoryIcon from '../components/common/CategoryIcon';
-import { formatPeso, formatDate, parsePesoInput } from '../utils/formatters';
+import { formatPeso, formatDate, parsePesoInput, getCurrentMonthYear } from '../utils/formatters';
 import { exportTransactionsToCsv } from '../utils/csvExport';
 import { compressImageToBase64 } from '../utils/imageCompress';
+import { checkCategoryAlert } from '../utils/budgetAlerts';
 import RecurringBills from '../components/transactions/RecurringBills';
 import { Timestamp } from '../services/firebase';
 import toast from 'react-hot-toast';
@@ -30,7 +31,7 @@ export default function Transactions() {
   const initialTab = searchParams.get('tab') === 'income' ? 'Kita'
                    : searchParams.get('tab') === 'expense' ? 'Gastos' : 'Lahat';
 
-  const { transactions, setTransactions, addTransactionLocal, removeTransactionLocal, transactionsLoaded } = useStore((s) => ({ transactions: s.transactions, setTransactions: s.setTransactions, addTransactionLocal: s.addTransactionLocal, removeTransactionLocal: s.removeTransactionLocal, transactionsLoaded: s.transactionsLoaded, }), shallow);
+  const { transactions, setTransactions, addTransactionLocal, removeTransactionLocal, transactionsLoaded, activeBudget, setActiveBudget } = useStore((s) => ({ transactions: s.transactions, setTransactions: s.setTransactions, addTransactionLocal: s.addTransactionLocal, removeTransactionLocal: s.removeTransactionLocal, transactionsLoaded: s.transactionsLoaded, activeBudget: s.activeBudget, setActiveBudget: s.setActiveBudget, }), shallow);
 
   const [activeTab,    setActiveTab]    = useState(initialTab);
   const [activeFilter, setActiveFilter] = useState('Lahat');
@@ -48,8 +49,17 @@ export default function Transactions() {
 
   // Fetch once per user session — see Dashboard.jsx for why deps stay [user] only.
   useEffect(() => {
-    if (!user || transactionsLoaded) return;
-    getTransactions(user.uid).then(txs => setTransactions(txs)).catch(console.error);
+    if (!user) return;
+    if (!transactionsLoaded) {
+      getTransactions(user.uid).then(txs => setTransactions(txs)).catch(console.error);
+    }
+    // Also load the current month's budget (for category-limit alerts) if we
+    // don't already have it — cheap single-doc read, and Budget.jsx may not
+    // have been visited yet this session.
+    const { month, year } = getCurrentMonthYear();
+    if (!(activeBudget?.month === month && activeBudget?.year === year)) {
+      getBudget(user.uid, month, year).then(b => { if (b) setActiveBudget(b); }).catch(() => {});
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -125,6 +135,32 @@ export default function Transactions() {
       const ref = await addTransaction(user.uid, tx);
       addTransactionLocal({ id: ref.id, userId: user.uid, ...tx, createdAt: Timestamp.now() });
       toast.success(txType === 'income' ? 'Kita naidagdag!' : 'Gastos naitala!');
+
+      // Budget category alert — only meaningful for expenses landing in the
+      // current month, and only if a budget with categoryLimits was saved.
+      if (txType === 'expense' && activeBudget?.categoryLimits) {
+        const { month, year } = getCurrentMonthYear();
+        const txDate = tx.date.toDate();
+        if (txDate.getMonth() + 1 === month && txDate.getFullYear() === year) {
+          const spentThisMonth = transactions
+            .filter(t => {
+              if (t.type !== 'expense' || t.category !== data.category) return false;
+              const d = t.date?.toDate ? t.date.toDate() : new Date(t.date);
+              return d.getMonth() + 1 === month && d.getFullYear() === year;
+            })
+            .reduce((s, t) => s + t.amount, 0) + amount;
+          const alert = checkCategoryAlert(data.category, spentThisMonth, activeBudget.categoryLimits);
+          if (alert) {
+            const label = getCatInfo(data.category, 'expense').label;
+            if (alert.level === 'over') {
+              toast(`⚠️ Nalagpasan mo na ang budget mo sa ${label} ngayong buwan (${alert.percent}%).`, { duration: 5000 });
+            } else {
+              toast(`👀 Malapit ka nang maubos ang budget mo sa ${label} (${alert.percent}%).`, { duration: 4000 });
+            }
+          }
+        }
+      }
+
       reset({ date: new Date().toISOString().slice(0, 10) });
       setReceiptPreview(null);
       setShowModal(false);
