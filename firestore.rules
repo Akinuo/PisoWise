@@ -45,7 +45,33 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid
         && isValidAmount()
         && request.resource.data.type in ['income', 'expense']
-        && hasRequiredFields(['userId', 'type', 'amount', 'category', 'date', 'createdAt']);
+        && hasRequiredFields(['userId', 'type', 'amount', 'category', 'date', 'createdAt'])
+        // receiptImage is optional, but if present must be a reasonably-sized
+        // base64 string (client compresses to ~30-150KB; 400KB is a generous
+        // ceiling so a legit photo never gets rejected, while still blocking
+        // someone trying to stuff arbitrary large payloads into a doc).
+        && (!('receiptImage' in request.resource.data) || request.resource.data.receiptImage.size() < 400000);
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && isValidAmount()
+        && (!('receiptImage' in request.resource.data) || request.resource.data.receiptImage.size() < 400000);
+      allow delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+    
+    // ──────────────────────────────────────────────────────────────────
+    // RECURRING TRANSACTIONS (bills/income that repeat on a schedule)
+    // ──────────────────────────────────────────────────────────────────
+    match /recurringTransactions/{recurringId} {
+      allow read:   if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && isValidAmount()
+        && request.resource.data.type in ['income', 'expense']
+        && request.resource.data.frequency in ['weekly', 'monthly', 'yearly']
+        && hasRequiredFields(['userId', 'type', 'amount', 'category', 'frequency', 'nextDueDate', 'active', 'createdAt']);
       allow update: if isAuthenticated()
         && resource.data.userId == request.auth.uid
         && request.resource.data.userId == request.auth.uid
@@ -53,7 +79,7 @@ service cloud.firestore {
       allow delete: if isAuthenticated()
         && resource.data.userId == request.auth.uid;
     }
-    
+
     // ──────────────────────────────────────────────────────────────────
     // SAVINGS GOALS
     // ──────────────────────────────────────────────────────────────────

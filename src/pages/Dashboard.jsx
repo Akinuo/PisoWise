@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
 import { shallow } from 'zustand/shallow';
 import LoadingScreen from '../components/common/LoadingScreen';
+import RecurringBills from '../components/transactions/RecurringBills';
 import {
   getTransactions, getSavingsGoals, getDebts, getInsights,
 } from '../services/firebase';
@@ -141,6 +142,11 @@ export default function Dashboard() {
                 {firstName[0].toUpperCase()}
               </motion.div>
             </Link>
+          </motion.div>
+
+          {/* ── Recurring Bill Reminders ── */}
+          <motion.div variants={item}>
+            <RecurringBills />
           </motion.div>
 
           {/* ── Hero Balance Card ── */}

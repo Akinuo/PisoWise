@@ -10,11 +10,15 @@ import { addTransaction, deleteTransaction, getTransactions } from '../services/
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants';
 import CategoryIcon from '../components/common/CategoryIcon';
 import { formatPeso, formatDate, parsePesoInput } from '../utils/formatters';
+import { exportTransactionsToCsv } from '../utils/csvExport';
+import { compressImageToBase64 } from '../utils/imageCompress';
+import RecurringBills from '../components/transactions/RecurringBills';
 import { Timestamp } from '../services/firebase';
 import toast from 'react-hot-toast';
 import {
   HiPlus, HiArrowTrendingUp, HiArrowTrendingDown,
-  HiTrash, HiArrowsRightLeft, HiXMark,
+  HiTrash, HiArrowsRightLeft, HiXMark, HiMagnifyingGlass,
+  HiArrowDownTray, HiCamera,
 } from 'react-icons/hi2';
 
 const TABS    = ['Lahat', 'Kita', 'Gastos'];
@@ -30,9 +34,13 @@ export default function Transactions() {
 
   const [activeTab,    setActiveTab]    = useState(initialTab);
   const [activeFilter, setActiveFilter] = useState('Lahat');
+  const [searchQuery,  setSearchQuery]  = useState('');
   const [showModal,    setShowModal]    = useState(!!searchParams.get('tab'));
   const [txType,       setTxType]       = useState(searchParams.get('tab') === 'income' ? 'income' : 'expense');
   const [submitting,   setSubmitting]   = useState(false);
+  const [receiptPreview, setReceiptPreview] = useState(null);
+  const [compressing,    setCompressing]    = useState(false);
+  const [viewingReceipt, setViewingReceipt] = useState(null);
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
     defaultValues: { date: new Date().toISOString().slice(0, 10) },
@@ -45,12 +53,23 @@ export default function Transactions() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  const getCatInfo = (id, type) => {
+    const cats = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+    return cats.find(c => c.id === id) || { id: 'other', label: id, color: '#6B7280' };
+  };
+
   const filterTxs = (txs) => {
     const now = new Date();
+    const q = searchQuery.trim().toLowerCase();
     return txs.filter(t => {
       const d = t.date?.toDate ? t.date.toDate() : new Date(t.date);
       if (activeTab === 'Kita'   && t.type !== 'income')  return false;
       if (activeTab === 'Gastos' && t.type !== 'expense') return false;
+      if (q) {
+        const label = getCatInfo(t.category, t.type).label.toLowerCase();
+        const haystack = `${t.description || ''} ${t.note || ''} ${label}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
       if (activeFilter === 'Ngayon')
         return d.toDateString() === now.toDateString();
       if (activeFilter === 'Linggong Ito') {
@@ -67,6 +86,27 @@ export default function Transactions() {
   const categories = txType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
   const selectedCat = watch('category');
 
+  const handleExport = () => {
+    if (displayed.length === 0) return;
+    exportTransactionsToCsv(displayed, (id, type) => getCatInfo(id, type).label);
+    toast.success('Na-export ang CSV!');
+  };
+
+  const handleReceiptSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCompressing(true);
+    try {
+      const base64 = await compressImageToBase64(file);
+      setReceiptPreview(base64);
+    } catch (err) {
+      toast.error(err.message || 'Hindi ma-process ang larawan.');
+    } finally {
+      setCompressing(false);
+      e.target.value = ''; // allow selecting the same file again later
+    }
+  };
+
   const onSubmit = async (data) => {
     if (!user) return;
     setSubmitting(true);
@@ -80,11 +120,13 @@ export default function Transactions() {
         description: data.description?.trim() || '',
         date:        Timestamp.fromDate(new Date(data.date + 'T00:00:00')),
         note:        data.note?.trim() || '',
+        ...(receiptPreview ? { receiptImage: receiptPreview } : {}),
       };
       const ref = await addTransaction(user.uid, tx);
       addTransactionLocal({ id: ref.id, userId: user.uid, ...tx, createdAt: Timestamp.now() });
       toast.success(txType === 'income' ? 'Kita naidagdag!' : 'Gastos naitala!');
       reset({ date: new Date().toISOString().slice(0, 10) });
+      setReceiptPreview(null);
       setShowModal(false);
     } catch {
       toast.error('Hindi nai-save. Subukan ulit.');
@@ -102,16 +144,17 @@ export default function Transactions() {
     } catch { toast.error('Hindi natanggal. Subukan ulit.'); }
   };
 
-  const getCatInfo = (id, type) => {
-    const cats = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
-    return cats.find(c => c.id === id) || { id: 'other', label: id, color: '#6B7280' };
-  };
-
   /* ── open modal and reset category ── */
   const openModal = (type) => {
     setTxType(type);
     reset({ date: new Date().toISOString().slice(0, 10) });
+    setReceiptPreview(null);
     setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setReceiptPreview(null);
   };
 
   return (
@@ -122,10 +165,18 @@ export default function Transactions() {
           {/* Header */}
           <div className="flex items-center justify-between pt-2">
             <h1 className="font-display text-3xl text-white">Transaksyon</h1>
-            <motion.button whileTap={{ scale: 0.9 }} onClick={() => openModal('expense')} className="btn-primary py-2 px-3.5 text-sm">
-              <HiPlus className="w-4 h-4" />
-              <span className="hidden sm:inline">Dagdag</span>
-            </motion.button>
+            <div className="flex gap-2">
+              <motion.button whileTap={{ scale: 0.9 }} onClick={handleExport}
+                disabled={displayed.length === 0}
+                className="btn-secondary py-2 px-3 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="I-export bilang CSV">
+                <HiArrowDownTray className="w-4 h-4" />
+              </motion.button>
+              <motion.button whileTap={{ scale: 0.9 }} onClick={() => openModal('expense')} className="btn-primary py-2 px-3.5 text-sm">
+                <HiPlus className="w-4 h-4" />
+                <span className="hidden sm:inline">Dagdag</span>
+              </motion.button>
+            </div>
           </div>
 
           {/* Quick type buttons */}
@@ -146,6 +197,9 @@ export default function Transactions() {
             </motion.button>
           </div>
 
+          {/* Recurring bills — due-soon reminders + manage entry point */}
+          <RecurringBills />
+
           {/* Tabs */}
           <div className="glass-sm p-1 flex gap-1">
             {TABS.map(tab => (
@@ -156,6 +210,19 @@ export default function Transactions() {
                 {tab}
               </button>
             ))}
+          </div>
+
+          {/* Search */}
+          <div className="relative">
+            <HiMagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-pw-muted" />
+            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Maghanap ng transaksyon..." className="input-glass pl-10 text-sm" />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-pw-muted hover:text-white">
+                <HiXMark className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           {/* Filters */}
@@ -197,6 +264,13 @@ export default function Transactions() {
                         <p className="text-pw-muted text-xs mt-0.5">{cat.label} · {formatDate(tx.date, 'relative')}</p>
                       </div>
                       <div className="flex items-center gap-2.5 flex-shrink-0">
+                        {tx.receiptImage && (
+                          <button onClick={() => setViewingReceipt(tx.receiptImage)}
+                            className="w-7 h-7 rounded-lg overflow-hidden border border-white/10 flex-shrink-0 cursor-pointer"
+                            aria-label="Tingnan ang resibo">
+                            <img src={tx.receiptImage} alt="Resibo" className="w-full h-full object-cover" />
+                          </button>
+                        )}
                         <p className={`font-semibold text-sm peso-amount font-mono ${tx.type === 'income' ? 'text-pw-emerald' : 'text-pw-rose'}`}>
                           {tx.type === 'income' ? '+' : '−'}{formatPeso(tx.amount, 0)}
                         </p>
@@ -220,7 +294,7 @@ export default function Transactions() {
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50"
-              onClick={() => setShowModal(false)} />
+              onClick={closeModal} />
 
             <motion.div
               initial={{ opacity: 0, y: '100%' }}
@@ -236,7 +310,7 @@ export default function Transactions() {
                 {/* Handle + close */}
                 <div className="flex items-center justify-between mb-5">
                   <div className="w-10 h-1 rounded-full bg-white/20" />
-                  <button onClick={() => setShowModal(false)}
+                  <button onClick={closeModal}
                     className="w-8 h-8 rounded-full flex items-center justify-center text-pw-muted hover:text-white transition-colors cursor-pointer"
                     style={{ background: 'rgba(255,255,255,0.05)' }}>
                     <HiXMark className="w-4 h-4" />
@@ -321,6 +395,33 @@ export default function Transactions() {
                       {...register('date', { required: 'Pumili ng petsa' })} />
                   </div>
 
+                  {/* Receipt photo (optional) */}
+                  <div>
+                    <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">
+                      Resibo <span className="normal-case text-pw-muted/60">(opsyonal)</span>
+                    </label>
+                    {receiptPreview ? (
+                      <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-white/10">
+                        <img src={receiptPreview} alt="Receipt preview" className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => setReceiptPreview(null)}
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center text-white">
+                          <HiXMark className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl border border-dashed border-white/15 text-pw-muted text-sm cursor-pointer hover:border-white/25 hover:text-white/80 transition-all">
+                        {compressing ? (
+                          <span className="w-4 h-4 rounded-full border-2 border-pw-muted border-t-transparent animate-spin" />
+                        ) : (
+                          <HiCamera className="w-4 h-4" />
+                        )}
+                        {compressing ? 'Nagpo-proseso...' : 'Kumuha o mag-upload ng larawan'}
+                        <input type="file" accept="image/*" capture="environment" className="hidden"
+                          onChange={handleReceiptSelect} disabled={compressing} />
+                      </label>
+                    )}
+                  </div>
+
                   <button type="submit" disabled={submitting} className="btn-primary w-full mt-1">
                     {submitting ? (
                       <span className="flex items-center justify-center gap-2">
@@ -333,6 +434,21 @@ export default function Transactions() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Receipt Lightbox ── */}
+      <AnimatePresence>
+        {viewingReceipt && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-6"
+            onClick={() => setViewingReceipt(null)}>
+            <button onClick={() => setViewingReceipt(null)}
+              className="absolute top-5 right-5 w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white">
+              <HiXMark className="w-5 h-5" />
+            </button>
+            <img src={viewingReceipt} alt="Resibo" className="max-w-full max-h-full rounded-2xl" onClick={e => e.stopPropagation()} />
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

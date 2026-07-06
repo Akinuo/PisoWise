@@ -42,6 +42,16 @@ const useStore = create((set, get) => ({
   removeCardLocal: (id) =>
     set((s) => ({ cards: s.cards.filter(c => c.id !== id) })),
 
+  // ── Recurring Transactions (bills/income that repeat) ─────────────────
+  recurringTransactions: [],
+  recurringTransactionsLoaded: false,
+  setRecurringTransactions: (recurringTransactions) => set({ recurringTransactions, recurringTransactionsLoaded: true }),
+  addRecurringLocal: (r) => set((s) => ({ recurringTransactions: [...s.recurringTransactions, r] })),
+  updateRecurringLocal: (id, data) =>
+    set((s) => ({ recurringTransactions: s.recurringTransactions.map(r => r.id === id ? { ...r, ...data } : r) })),
+  removeRecurringLocal: (id) =>
+    set((s) => ({ recurringTransactions: s.recurringTransactions.filter(r => r.id !== id) })),
+
   // ── Insights ─────────────────────────────────────────────────────────
   insights: [],
   insightsLoaded: false,
@@ -94,6 +104,8 @@ const useStore = create((set, get) => ({
     debtsLoaded:        false,
     cards:              [],
     cardsLoaded:        false,
+    recurringTransactions:       [],
+    recurringTransactionsLoaded: false,
     insights:           [],
     insightsLoaded:     false,
     chatHistory:        [],

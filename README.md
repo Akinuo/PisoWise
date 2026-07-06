@@ -10,7 +10,10 @@
 ### 💸 Income & Expense Tracking
 - Log transactions via **text input**
 - 16 expense + 12 income categories with Filipino context
-- Filter by type, date range, and category
+- Filter by type, date range, and category — plus free-text **search** across description/note/category
+- Attach a **receipt photo** to any transaction (compressed client-side, stored directly on the transaction doc — no Firebase Storage/Blaze plan needed)
+- **Recurring bills & income** — set up anything that repeats weekly/monthly/yearly, get a due-soon/overdue reminder on Dashboard and Transactions, and log it with one tap when paid
+- **Export to CSV** for any filtered view, Excel/Sheets-ready
 - Real-time 7-day spending chart
 
 ### 🤖 AI Budget Generator (Groq Llama 3.3 70B)
@@ -24,11 +27,13 @@
 - Track progress with animated visual bars
 - AI-generated savings strategies per goal
 - Quick-add funds feature
+- **Savings Challenges** — pre-built plans (52-Week Challenge, ₱1,000/Buwan, 30-Day No-Spend, ₱20/Araw) that set up a goal with a suggested target, deadline, and schedule in one tap
 
 ### ⛓️ Debt Manager
 - Track all debts: bank loans, 5-6, Pag-IBIG, SSS, credit cards, family loans
 - **Automatic 5-6/bombay loan warning** with escape strategies
-- AI debt repayment plan (avalanche/snowball method)
+- AI debt repayment plan (narrative advice from Groq)
+- **Deterministic Payoff Calculator** — snowball vs. avalanche simulation using each debt's actual interest rate and minimum payment, showing months-to-debt-free, total interest, and how much avalanche saves over snowball
 - Quick payment logging with progress tracking
 
 ### 💳 Card Wallet (Security-First)
@@ -226,6 +231,7 @@ All prompts are Filipino-context aware and include:
 | `cards`       | All cards at once            | Low           |
 | `insights`    | Last 5 only                  | Low           |
 | `budgets`     | Current month only           | Low           |
+| `recurringTransactions` | All active bills at once (small list) | Low |
 | `otpTokens`   | Create + delete per OTP      | Very Low      |
 
 ### Optimizations

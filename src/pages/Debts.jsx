@@ -1,5 +1,5 @@
 // src/pages/Debts.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,12 +8,13 @@ import { shallow } from 'zustand/shallow';
 import { addDebt, getDebts, updateDebt, deleteDebt, getTransactions } from '../services/firebase';
 import { generateDebtPlan } from '../services/groq';
 import { formatPeso, parsePesoInput, getPercent } from '../utils/formatters';
+import { comparePayoffStrategies } from '../utils/payoffCalculator';
 import { Timestamp } from '../services/firebase';
 import toast from 'react-hot-toast';
 import {
   HiPlus, HiXMark, HiTrash, HiSparkles,
   HiShieldCheck, HiPencil, HiArrowPath,
-  HiExclamationTriangle, HiCheckCircle,
+  HiExclamationTriangle, HiCheckCircle, HiCalculator, HiTrophy,
 } from 'react-icons/hi2';
 
 const DEBT_TYPES = [
@@ -38,6 +39,9 @@ export default function Debts() {
   const [aiResult,    setAiResult]    = useState('');
   const [genLoading,  setGenLoading]  = useState(false);
   const [showAI,      setShowAI]      = useState(false);
+  const [showCalc,      setShowCalc]      = useState(false);
+  const [extraPayment,  setExtraPayment]  = useState('1000');
+  const [strategy,       setStrategy]      = useState('avalanche');
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
@@ -132,6 +136,13 @@ export default function Debts() {
   const getTypeInfo = (id) => DEBT_TYPES.find(t => t.id === id) || DEBT_TYPES[DEBT_TYPES.length - 1];
   const hasFiveSix  = debts.some(d => d.debtType === 'five_six');
 
+  const activeDebts = useMemo(() => debts.filter(d => (d.remainingAmount || 0) > 0), [debts]);
+  const payoffComparison = useMemo(
+    () => showCalc ? comparePayoffStrategies(activeDebts, parsePesoInput(extraPayment) || 0) : null,
+    [showCalc, activeDebts, extraPayment]
+  );
+  const activePlan = payoffComparison?.[strategy];
+
   return (
     <div className="page">
       <div className="page-content">
@@ -145,6 +156,10 @@ export default function Debts() {
               </p>
             </div>
             <div className="flex gap-2">
+              <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowCalc(v => !v)}
+                className="btn-secondary py-2.5 px-3 text-xs gap-1.5">
+                <HiCalculator className="w-3.5 h-3.5 text-pw-blue-light" /> Calculator
+              </motion.button>
               <motion.button whileTap={{ scale: 0.9 }} onClick={generatePlan}
                 className="btn-secondary py-2.5 px-3 text-xs gap-1.5">
                 <HiSparkles className="w-3.5 h-3.5 text-pw-gold" /> AI Plan
@@ -155,6 +170,110 @@ export default function Debts() {
               </motion.button>
             </div>
           </div>
+
+          {/* Payoff Strategy Calculator */}
+          <AnimatePresence>
+            {showCalc && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                <div className="glass p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <HiCalculator className="w-4 h-4 text-pw-blue-light" />
+                      <p className="text-sm font-semibold text-white">Debt Payoff Calculator</p>
+                    </div>
+                    <button onClick={() => setShowCalc(false)}
+                      className="w-7 h-7 rounded-lg bg-pw-subtle flex items-center justify-center text-pw-muted hover:text-white">
+                      <HiXMark className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {activeDebts.length === 0 ? (
+                    <p className="text-pw-muted text-sm">Walang aktibong utang na kalkulahin.</p>
+                  ) : (
+                    <>
+                      <div className="flex gap-3 mb-4">
+                        <div className="flex-1">
+                          <label className="block text-xs text-pw-muted mb-1.5">Extra Buwanang Bayad</label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-pw-gold font-bold text-sm">₱</span>
+                            <input type="number" min="0" value={extraPayment}
+                              onChange={e => setExtraPayment(e.target.value)}
+                              className="input-glass pl-7" placeholder="1000" />
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-xs text-pw-muted mb-1.5">Estratehiya</label>
+                          <div className="grid grid-cols-2 gap-1.5 h-[46px]">
+                            <button type="button" onClick={() => setStrategy('avalanche')}
+                              className={`rounded-xl text-xs font-semibold transition-all ${strategy === 'avalanche' ? 'bg-pw-gold text-pw-navy' : 'bg-pw-subtle text-pw-muted'}`}>
+                              Avalanche
+                            </button>
+                            <button type="button" onClick={() => setStrategy('snowball')}
+                              className={`rounded-xl text-xs font-semibold transition-all ${strategy === 'snowball' ? 'bg-pw-gold text-pw-navy' : 'bg-pw-subtle text-pw-muted'}`}>
+                              Snowball
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="text-[11px] text-pw-muted leading-relaxed mb-4">
+                        {strategy === 'avalanche'
+                          ? 'Avalanche: bayaran muna ang utang na may pinaka-mataas na interest rate. Ito ang pinaka-mura sa lahat.'
+                          : 'Snowball: bayaran muna ang pinaka-maliit na utang. Mas mabilis makakita ng progreso para sa motibasyon.'}
+                      </p>
+
+                      {activePlan?.impossible ? (
+                        <div className="p-3 rounded-xl border border-pw-rose/30 bg-pw-rose-dim">
+                          <p className="text-pw-rose text-xs font-medium">
+                            Hindi kayang mabayaran nang buo ang mga utang gamit ang kasalukuyang minimum + extra na bayad — ang interes ay lumalaki nang mas mabilis kaysa sa bayad. Subukang dagdagan ang extra payment.
+                          </p>
+                        </div>
+                      ) : activePlan && (
+                        <>
+                          <div className="grid grid-cols-2 gap-2 mb-4">
+                            <div className="glass-sm p-3 text-center">
+                              <p className="font-bold text-lg text-pw-emerald">
+                                {activePlan.monthsToPayoff} {activePlan.monthsToPayoff === 1 ? 'buwan' : 'buwan'}
+                              </p>
+                              <p className="text-pw-muted text-[10px] mt-0.5">Hanggang Debt-Free</p>
+                            </div>
+                            <div className="glass-sm p-3 text-center">
+                              <p className="font-bold text-lg text-pw-amber">{formatPeso(activePlan.totalInterestPaid, 0)}</p>
+                              <p className="text-pw-muted text-[10px] mt-0.5">Kabuuang Interest</p>
+                            </div>
+                          </div>
+
+                          {payoffComparison.interestSaved > 0 && strategy === 'snowball' && (
+                            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-pw-blue/10 border border-pw-blue/20 mb-4">
+                              <HiTrophy className="w-4 h-4 text-pw-blue-light flex-shrink-0" />
+                              <p className="text-[11px] text-white/80 leading-relaxed">
+                                Makakatipid ka ng <strong className="text-pw-blue-light">{formatPeso(payoffComparison.interestSaved, 0)}</strong> sa interest kung gagamitin mo ang Avalanche method sa halip.
+                              </p>
+                            </div>
+                          )}
+
+                          <p className="text-xs text-pw-muted mb-2 font-semibold uppercase tracking-wide">Pagkakasunod-sunod ng Bayad</p>
+                          <div className="space-y-1.5">
+                            {activePlan.order.map((name, i) => (
+                              <div key={name} className="flex items-center gap-2.5 text-sm">
+                                <span className="w-5 h-5 rounded-full bg-pw-subtle flex items-center justify-center text-[10px] font-bold text-pw-muted flex-shrink-0">
+                                  {i + 1}
+                                </span>
+                                <span className="text-white/85">{name}</span>
+                                {activePlan.payoffMonths[name] && (
+                                  <span className="text-pw-muted text-xs ml-auto">buwan {activePlan.payoffMonths[name]}</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* 5-6 Warning */}
           {hasFiveSix && (

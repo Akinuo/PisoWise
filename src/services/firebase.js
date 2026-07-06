@@ -174,6 +174,33 @@ export const deleteTransaction = async (transactionId) => {
   await deleteDoc(doc(db, 'transactions', transactionId));
 };
 
+// ─── Recurring Transactions (bills/income that repeat) ────────────────────
+export const addRecurringTransaction = async (userId, data) => {
+  return addDoc(collection(db, 'recurringTransactions'), {
+    userId,
+    ...data,
+    active: true,
+    createdAt: serverTimestamp(),
+  });
+};
+
+// No orderBy here on purpose — this list is always small (a handful of
+// bills per user), so we sort client-side instead of requiring a composite
+// Firestore index just for this one query.
+export const getRecurringTransactions = async (userId) => {
+  const q = query(collection(db, 'recurringTransactions'), where('userId', '==', userId));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+};
+
+export const updateRecurringTransaction = async (id, data) => {
+  await updateDoc(doc(db, 'recurringTransactions', id), { ...data, updatedAt: serverTimestamp() });
+};
+
+export const deleteRecurringTransaction = async (id) => {
+  await deleteDoc(doc(db, 'recurringTransactions', id));
+};
+
 // ─── Savings Goals ────────────────────────────────────────────────────────
 export const addSavingsGoal = async (userId, data) => {
   return addDoc(collection(db, 'savings'), {

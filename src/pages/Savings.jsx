@@ -8,11 +8,12 @@ import { shallow } from 'zustand/shallow';
 import { addSavingsGoal, getSavingsGoals, updateSavingsGoal, deleteSavingsGoal, getTransactions } from '../services/firebase';
 import { generateSavingsStrategy } from '../services/groq';
 import { formatPeso, formatDate, getPercent, parsePesoInput } from '../utils/formatters';
+import { SAVINGS_CHALLENGES } from '../utils/constants';
 import { Timestamp } from '../services/firebase';
 import toast from 'react-hot-toast';
 import {
   HiPlus, HiXMark, HiTrash, HiSparkles,
-  HiBanknotes, HiPencil, HiArrowPath,
+  HiBanknotes, HiPencil, HiArrowPath, HiTrophy,
 } from 'react-icons/hi2';
 
 const GOAL_COLORS = [
@@ -39,6 +40,7 @@ export default function Savings() {
   const [aiResult,  setAiResult]  = useState('');
   const [genLoading, setGenLoading] = useState(false);
   const [selectedColor, setSelectedColor] = useState('blue');
+  const [showChallenges, setShowChallenges] = useState(false);
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
@@ -74,6 +76,20 @@ export default function Savings() {
     } else {
       reset(); setSelectedColor('blue');
     }
+    setShowModal(true);
+  };
+
+  const startChallenge = (challenge) => {
+    setEditGoal(null);
+    reset();
+    setValue('goalName', challenge.name);
+    setValue('targetAmount', String(challenge.targetAmount));
+    setValue('currentAmount', '0');
+    const deadline = new Date(); deadline.setDate(deadline.getDate() + challenge.days);
+    setValue('deadline', deadline.toISOString().slice(0, 10));
+    setValue('note', challenge.note);
+    setSelectedColor('gold');
+    setShowChallenges(false);
     setShowModal(true);
   };
 
@@ -161,10 +177,16 @@ export default function Savings() {
                 Kabuuang Ipon: <span className="text-pw-emerald font-bold">{formatPeso(totalSavings, 0)}</span>
               </p>
             </div>
-            <motion.button whileTap={{ scale: 0.9 }} onClick={() => openModal()}
-              className="btn-primary py-2.5 px-4">
-              <HiPlus className="w-4 h-4" /> Dagdag
-            </motion.button>
+            <div className="flex gap-2">
+              <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowChallenges(true)}
+                className="btn-secondary py-2.5 px-3 text-xs gap-1.5">
+                <HiTrophy className="w-3.5 h-3.5 text-pw-gold" /> Challenge
+              </motion.button>
+              <motion.button whileTap={{ scale: 0.9 }} onClick={() => openModal()}
+                className="btn-primary py-2.5 px-4">
+                <HiPlus className="w-4 h-4" /> Dagdag
+              </motion.button>
+            </div>
           </div>
 
           {/* Goals List */}
@@ -350,6 +372,52 @@ export default function Savings() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Challenge Picker Modal ── */}
+      <AnimatePresence>
+        {showChallenges && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50" onClick={() => setShowChallenges(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: '100%' }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: '100%' }}
+              transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+              className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl px-6 pt-6 max-h-[85dvh] overflow-y-auto sheet-modal"
+              style={{ background: 'rgba(12,22,40,0.98)', backdropFilter: 'blur(28px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-5" />
+              <div className="flex items-center gap-2 mb-1">
+                <HiTrophy className="w-5 h-5 text-pw-gold" />
+                <h2 className="font-display text-xl font-bold text-white">Mga Savings Challenge</h2>
+              </div>
+              <p className="text-pw-muted text-sm mb-5">Pumili ng challenge para may malinaw na plano sa pag-iipon.</p>
+
+              <div className="space-y-2.5">
+                {SAVINGS_CHALLENGES.map(c => (
+                  <button key={c.id} onClick={() => startChallenge(c)}
+                    className="w-full text-left glass-sm p-4 flex items-center gap-3.5 hover:bg-white/[0.06] transition-all cursor-pointer">
+                    <div className="w-11 h-11 rounded-2xl bg-pw-gold-dim flex items-center justify-center text-xl flex-shrink-0">
+                      {c.emoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-semibold">{c.name}</p>
+                      <p className="text-pw-muted text-xs mt-0.5 leading-relaxed">{c.description}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-pw-gold text-sm font-bold">{formatPeso(c.targetAmount, 0)}</p>
+                      <p className="text-pw-muted text-[10px]">{c.days} araw</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <button onClick={() => setShowChallenges(false)} className="btn-secondary w-full mt-5">
+                Bumalik
+              </button>
             </motion.div>
           </>
         )}

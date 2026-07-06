@@ -380,3 +380,46 @@ export const MONTHS_PH = [
 
 // ─── Day labels ───────────────────────────────────────────────────────────
 export const DAYS_PH = ['Lin', 'Lun', 'Mar', 'Miy', 'Huw', 'Biy', 'Sab'];
+
+// ─── Savings Challenges ─────────────────────────────────────────────────
+// Pre-built templates that pre-fill the "add savings goal" form with a
+// suggested target, deadline, and note — a lightweight way to give people
+// a concrete plan to follow instead of a blank goal with no structure.
+export const SAVINGS_CHALLENGES = [
+  {
+    id: 'week52',
+    emoji: '📅',
+    name: '52-Week Challenge',
+    description: 'Magsimula sa ₱50, dagdagan ng ₱50 bawat linggo',
+    days: 364,
+    targetAmount: 68900,
+    note: '52-Week Savings Challenge: mag-ipon ng ₱50 sa Linggo 1, dagdagan ng ₱50 bawat linggo (₱100 sa Linggo 2, ₱150 sa Linggo 3, atbp.) hanggang ₱2,600 sa Linggo 52.',
+  },
+  {
+    id: 'monthly1k',
+    emoji: '🏦',
+    name: '₱1,000 Bawat Buwan',
+    description: 'Simpleng ipon, ₱1,000 kada buwan sa loob ng 1 taon',
+    days: 365,
+    targetAmount: 12000,
+    note: 'Mag-ipon ng ₱1,000 bawat buwan sa loob ng 12 buwan. Pwedeng i-set as auto-debit o alarm reminder bawat sweldo.',
+  },
+  {
+    id: 'nospend30',
+    emoji: '🚫',
+    name: '30-Day No-Spend',
+    description: 'Iwasan ang di-kailangang gastos sa loob ng 30 araw',
+    days: 30,
+    targetAmount: 3000,
+    note: '30-Day No-Spend Challenge: iwasan muna ang mga gastos na hindi kailangan (kape sa labas, food delivery, impulse buys) sa loob ng 30 araw. I-deposit dito ang matitipid.',
+  },
+  {
+    id: 'daily20',
+    emoji: '🪙',
+    name: '₱20 Bawat Araw',
+    description: 'Maliit na ipon araw-araw, malaki ang tipon sa taon',
+    days: 365,
+    targetAmount: 7300,
+    note: 'Mag-ipon ng ₱20 bawat araw (halaga ng kape o meryenda) sa loob ng isang taon.',
+  },
+];
