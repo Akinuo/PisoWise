@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import {
   registerUser, loginUser, signInWithGoogle, logoutUser, onAuthChange,
-  getUserProfile, updateUserProfile, resetPassword, requestFCMPermission,
+  getUserProfile, updateUserProfile, resetPassword,
 } from '../services/firebase';
 import useStore from '../store/useStore';
 
@@ -32,8 +32,6 @@ export const AuthProvider = ({ children }) => {
         try {
           const prof = await getUserProfile(firebaseUser.uid);
           setProfile(prof);
-          // Request FCM token silently
-          requestFCMPermission(firebaseUser.uid).catch(() => {});
         } catch (e) {
           console.error('Profile fetch error:', e);
         }

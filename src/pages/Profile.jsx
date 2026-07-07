@@ -6,12 +6,12 @@ import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
 import { shallow } from 'zustand/shallow';
 import { calculateHealthScore, getHealthScoreInfo, formatPeso } from '../utils/formatters';
-import { requestFCMPermission, getTransactions, getSavingsGoals, getDebts, getCards, getInsights, getRecurringTransactions } from '../services/firebase';
+import { getTransactions, getSavingsGoals, getDebts, getCards, getInsights, getRecurringTransactions } from '../services/firebase';
 import { exportFullBackup } from '../utils/dataBackup';
 import { THEMES, applyTheme, getStoredTheme } from '../utils/theme';
 import toast from 'react-hot-toast';
 import {
-  HiUser, HiEnvelope, HiBanknotes, HiBell,
+  HiUser, HiEnvelope, HiBanknotes,
   HiArrowRightOnRectangle, HiPencil,
   HiShieldCheck, HiDevicePhoneMobile, HiChartBar,
   HiAcademicCap, HiCreditCard, HiArrowDownTray, HiSwatch,
@@ -24,7 +24,6 @@ export default function Profile() {
 
   const [editing, setEditing]     = useState(false);
   const [saving,  setSaving]      = useState(false);
-  const [fcmEnabled, setFcmEnabled] = useState(false);
   const [currentTheme, setCurrentTheme] = useState(() => getStoredTheme());
   const [backingUp, setBackingUp] = useState(false);
 
@@ -67,15 +66,6 @@ export default function Profile() {
     resetStore();
     await logout();
     toast.success('Nag-logout na. Hanggang sa muli!');
-  };
-
-  const enableNotifications = async () => {
-    if (!user) return;
-    try {
-      const token = await requestFCMPermission(user.uid);
-      if (token) { setFcmEnabled(true); toast.success('Naka-on na ang notifications!'); }
-      else toast.error('Hindi maaaring i-enable ang notifications.');
-    } catch { toast.error('Notifications permission denied.'); }
   };
 
   const handleThemeChange = (themeId) => {
@@ -267,12 +257,6 @@ export default function Profile() {
               </div>
 
               {[
-                {
-                  icon: HiBell, label: 'Push Notifications',
-                  desc: fcmEnabled ? 'Naka-enable na' : 'I-enable para sa mga reminders',
-                  action: enableNotifications,
-                  badge: fcmEnabled ? 'ON' : null,
-                },
                 {
                   icon: HiDevicePhoneMobile, label: 'Android App',
                   desc: 'I-download ang APK para sa Android',

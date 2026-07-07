@@ -60,11 +60,13 @@
 - Interactive quizzes with pass/fail tracking
 - **AI Q&A** — ask questions about each lesson in real-time
 
-### 🔔 Push Notifications (FCM)
-- Budget alerts at 80% and 100% of monthly income
-- Weekly spending summaries (every Monday)
-- Debt payment reminders (3 days before due)
-- Monthly financial health check reminders
+### 🔔 In-App Reminders
+- Recurring bill due-soon/overdue banner (Dashboard + Transactions)
+- Category budget alerts when a transaction pushes you over a saved limit
+- All computed client-side on page load — no push notifications, no
+  server-side scheduling, since both would require Cloud Functions
+  (Blaze plan). See "Notifications" in SETUP.md for why this app doesn't
+  use Firebase Cloud Messaging.
 
 ---
 
@@ -80,7 +82,6 @@
 | Authentication  | Firebase Auth (Email/Password)          |
 | Database        | Firebase Firestore (Spark Plan)         |
 | Hosting         | Firebase Hosting                        |
-| Push Notifs     | Firebase Cloud Messaging (FCM)          |
 | AI              | Groq API — Llama 3.3 70B Versatile      |
 | Email OTP       | EmailJS                                 |
 | Mobile          | Capacitor 5 (Android)                   |

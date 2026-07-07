@@ -29,7 +29,6 @@ import {
   Timestamp,
   onSnapshot,
 } from 'firebase/firestore';
-import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 
 // ─── Firebase Config ──────────────────────────────────────────────────────
 const firebaseConfig = {
@@ -48,14 +47,6 @@ const db   = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-// FCM only works in browsers that support it (not in Android Capacitor WebView for this config)
-let messaging = null;
-try {
-  messaging = getMessaging(app);
-} catch (e) {
-  console.warn('FCM not available in this environment:', e.message);
-}
-
 // ─── Auth Helpers ─────────────────────────────────────────────────────────
 export const registerUser = async (email, password, displayName, profileData = {}) => {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -67,7 +58,6 @@ export const registerUser = async (email, password, displayName, profileData = {
     email,
     displayName,
     createdAt:   serverTimestamp(),
-    fcmToken:    null,
     onboarded:   false,
     monthlyIncome: Number(profileData.monthlyIncome) || 0,
     authProvider: 'password',
@@ -90,7 +80,6 @@ export const signInWithGoogle = async () => {
       displayName:   user.displayName || user.email?.split('@')[0] || 'PisoWise User',
       photoURL:      user.photoURL || null,
       createdAt:     serverTimestamp(),
-      fcmToken:      null,
       onboarded:     false,
       monthlyIncome: 0,
       authProvider:  'google',
@@ -444,28 +433,6 @@ export const getBudgetHistory = async (userId) => {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 };
 
-// ─── FCM Push Notifications ───────────────────────────────────────────────
-export const requestFCMPermission = async (userId) => {
-  if (!messaging) return null;
-  try {
-    const token = await getToken(messaging, {
-      vapidKey: import.meta.env.VITE_FCM_VAPID_KEY,
-    });
-    if (token && userId) {
-      await updateDoc(doc(db, 'users', userId), { fcmToken: token });
-    }
-    return token;
-  } catch (e) {
-    console.warn('FCM token error:', e.message);
-    return null;
-  }
-};
-
-export const onFCMMessage = (callback) => {
-  if (!messaging) return () => {};
-  return onMessage(messaging, callback);
-};
-
 // ─── Real-time Listeners ──────────────────────────────────────────────────
 export const listenTransactions = (userId, callback) => {
   const q = query(
@@ -481,4 +448,4 @@ export const listenTransactions = (userId, callback) => {
 };
 
 // ─── Exports ──────────────────────────────────────────────────────────────
-export { app, auth, db, messaging, serverTimestamp, Timestamp };
+export { app, auth, db, serverTimestamp, Timestamp };

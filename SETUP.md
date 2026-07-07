@@ -54,10 +54,13 @@ npm install
 1. Left menu → **Hosting** → **Get started**
 2. Follow the prompts (Firebase CLI will handle the rest)
 
-### 2f. Get FCM VAPID Key
-1. Project Settings → **Cloud Messaging** tab
-2. Scroll to **"Web Push certificates"** → **Generate key pair**
-3. Copy the key value
+> **Note on push notifications:** this app deliberately does not use Firebase
+> Cloud Messaging. Enabling Cloud Messaging's server-side send capability
+> can prompt you to link a billing account (Blaze plan) even though FCM
+> itself is free — and without Cloud Functions (also Blaze-only) there'd be
+> nothing server-side to trigger a send anyway. Bill/budget reminders are
+> instead computed client-side and shown as in-app banners (see
+> RecurringBills.jsx and the category budget alerts in Transactions.jsx).
 
 ---
 
@@ -136,8 +139,6 @@ VITE_FIREBASE_PROJECT_ID=pisowise
 VITE_FIREBASE_STORAGE_BUCKET=pisowise.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
 VITE_FIREBASE_APP_ID=1:123456789:web:abc123
-
-VITE_FCM_VAPID_KEY=BNtq...
 
 VITE_GROQ_API_KEY=gsk_...
 
@@ -261,7 +262,7 @@ npx cap run android
 
 PisoWise runs entirely on the **Spark (free) plan** and doesn't use Firebase Cloud Functions —
 they require the pay-as-you-go Blaze plan. Everything (AI coaching, tracking, lessons, cards,
-OTP verification) runs client-side or through free-tier Firebase services (Auth, Firestore, FCM).
+OTP verification) runs client-side or through free-tier Firebase services (Auth, Firestore).
 
 If you later upgrade to Blaze and want server-side push notifications (budget alerts, weekly
 summaries, debt reminders) or scheduled cleanup jobs, you'd add a `functions/` directory back
@@ -290,7 +291,6 @@ That's a separate addition, not something this project currently depends on.
 | `VITE_FIREBASE_STORAGE_BUCKET` | Firebase Console → Settings | ✅    |
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase Console → Settings | ✅ |
 | `VITE_FIREBASE_APP_ID`       | Firebase Console → Settings | ✅      |
-| `VITE_FCM_VAPID_KEY`         | Firebase → Cloud Messaging | ✅       |
 | `VITE_GROQ_API_KEY`          | console.groq.com           | ✅       |
 | `VITE_EMAILJS_SERVICE_ID`    | emailjs.com → Services     | ✅       |
 | `VITE_EMAILJS_TEMPLATE_ID`   | emailjs.com → Templates    | ✅       |
@@ -339,7 +339,6 @@ That's a separate addition, not something this project currently depends on.
 | Firestore    | 50K reads, 20K writes/day | ✅ Well within limits  |
 | Hosting      | 10 GB storage, 360 MB/day | ✅ Static assets only  |
 | Functions    | ❌ Not available          | ⚠️ Needs Blaze plan   |
-| FCM          | Unlimited                | ✅ Free                |
 
 ---
 
