@@ -1,7 +1,21 @@
 // src/utils/pdfExport.js
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatPeso } from './formatters';
+
+// jsPDF's built-in fonts (Helvetica/Times/Courier) only support
+// WinAnsiEncoding, which doesn't include the ₱ glyph (U+20B1) — it renders
+// as garbled characters instead. Embedding a Unicode-capable font is the
+// "proper" fix but a much heavier lift (converting a TTF to base64 and
+// registering it with jsPDF); "PHP " is the standard pragmatic workaround
+// used for this exact jsPDF limitation. Only used inside this file — every
+// other part of the app still shows the real ₱ symbol correctly.
+const formatPesoPdf = (amount, decimals = 2) => {
+  const num = Number(amount) || 0;
+  return `PHP ${num.toLocaleString('en-PH', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })}`;
+};
 
 const GOLD  = [245, 183, 49];
 const NAVY  = [8, 14, 31];
@@ -43,9 +57,9 @@ export const generateMonthlyReportPdf = ({ monthLabel, transactions, getCatLabel
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   const summaryRows = [
-    ['Kabuuang Kita', formatPeso(income, 2)],
-    ['Kabuuang Gastos', formatPeso(expenses, 2)],
-    [net >= 0 ? 'Natitirang Balanse' : 'Kulang', formatPeso(Math.abs(net), 2)],
+    ['Kabuuang Kita', formatPesoPdf(income, 2)],
+    ['Kabuuang Gastos', formatPesoPdf(expenses, 2)],
+    [net >= 0 ? 'Natitirang Balanse' : 'Kulang', formatPesoPdf(Math.abs(net), 2)],
     ['Bilang ng Transaksyon', String(transactions.length)],
   ];
   summaryRows.forEach(([label, value]) => {
@@ -64,7 +78,7 @@ export const generateMonthlyReportPdf = ({ monthLabel, transactions, getCatLabel
   });
   const categoryRows = Object.entries(byCategory)
     .sort((a, b) => b[1] - a[1])
-    .map(([cat, amt]) => [getCatLabel(cat), formatPeso(amt, 2), `${expenses > 0 ? Math.round((amt / expenses) * 100) : 0}%`]);
+    .map(([cat, amt]) => [getCatLabel(cat), formatPesoPdf(amt, 2), `${expenses > 0 ? Math.round((amt / expenses) * 100) : 0}%`]);
 
   if (categoryRows.length > 0) {
     autoTable(doc, {
@@ -94,7 +108,7 @@ export const generateMonthlyReportPdf = ({ monthLabel, transactions, getCatLabel
         t.type === 'income' ? 'Kita' : 'Gastos',
         getCatLabel(t.category),
         t.description || '-',
-        formatPeso(t.amount, 2),
+        formatPesoPdf(t.amount, 2),
       ];
     });
 
