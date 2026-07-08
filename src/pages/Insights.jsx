@@ -1,5 +1,6 @@
 // src/pages/Insights.jsx
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
@@ -12,7 +13,7 @@ import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import {
   HiSparkles, HiArrowPath, HiPaperAirplane,
-  HiChatBubbleLeftRight, HiChartBar,
+  HiChatBubbleLeftRight, HiChartBar, HiDocumentChartBar,
   HiLightBulb, HiClock,
 } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
@@ -163,9 +164,15 @@ export default function Insights() {
       <div className="page-content">
         <div className="space-y-4">
           {/* Header */}
-          <div className="pt-2">
-            <h1 className="font-display text-2xl font-bold text-white mb-1">AI Insights</h1>
-            <p className="text-pw-muted text-sm">Personalized na payo mula sa AI para sa inyong sitwasyon</p>
+          <div className="pt-2 flex items-start justify-between">
+            <div>
+              <h1 className="font-display text-2xl font-bold text-white mb-1">AI Insights</h1>
+              <p className="text-pw-muted text-sm">Personalized na payo mula sa AI para sa inyong sitwasyon</p>
+            </div>
+            <Link to="/reports"
+              className="btn-secondary py-2 px-3 text-xs gap-1.5 flex-shrink-0">
+              <HiDocumentChartBar className="w-3.5 h-3.5" /> Ulat
+            </Link>
           </div>
 
           {/* Tab Switcher */}

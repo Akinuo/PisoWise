@@ -27,13 +27,17 @@ export default async function handler(req, res) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'GROQ_API_KEY is not configured on the server.' });
 
-  const { messages, max_tokens } = req.body || {};
+  const { messages, max_tokens, model } = req.body || {};
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: 'messages array is required.' });
   }
 
   // Basic sanity cap so a bug or abuse can't run up a huge bill in one call.
   const safeMaxTokens = Math.min(Number(max_tokens) || 1024, 2000);
+  // Only allow known models — an open passthrough here would let anyone
+  // route arbitrary Groq model traffic through this proxy.
+  const ALLOWED_MODELS = ['llama-3.3-70b-versatile', 'llama-3.2-90b-vision-preview'];
+  const safeModel = ALLOWED_MODELS.includes(model) ? model : 'llama-3.3-70b-versatile';
 
   try {
     const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -43,7 +47,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: safeModel,
         messages,
         max_tokens: safeMaxTokens,
         temperature: 0.7,

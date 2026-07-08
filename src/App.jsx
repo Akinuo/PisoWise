@@ -18,6 +18,7 @@ const Debts        = lazy(() => import('./pages/Debts'));
 const Cards        = lazy(() => import('./pages/Cards'));
 const Lessons      = lazy(() => import('./pages/Lessons'));
 const Insights     = lazy(() => import('./pages/Insights'));
+const Reports      = lazy(() => import('./pages/Reports'));
 const Profile      = lazy(() => import('./pages/Profile'));
 
 // ─── Route Guards ─────────────────────────────────────────────────────────
@@ -52,6 +53,7 @@ const AppRoutes = () => (
         <Route path="lessons"      element={<Lessons />} />
         <Route path="lessons/:id"  element={<Lessons />} />
         <Route path="insights"     element={<Insights />} />
+        <Route path="reports"      element={<Reports />} />
         <Route path="profile"      element={<Profile />} />
       </Route>
 

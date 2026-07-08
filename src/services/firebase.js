@@ -190,6 +190,26 @@ export const deleteRecurringTransaction = async (id) => {
   await deleteDoc(doc(db, 'recurringTransactions', id));
 };
 
+// ─── Net Worth Snapshots (for trend tracking over time) ───────────────────
+// Written at most once per calendar day per user (checked client-side via
+// localStorage before calling this — see Dashboard.jsx) so this stays a
+// cheap, small collection rather than growing unboundedly.
+export const addNetWorthSnapshot = async (userId, data) => {
+  return addDoc(collection(db, 'netWorthSnapshots'), {
+    userId,
+    ...data,
+    createdAt: serverTimestamp(),
+  });
+};
+
+// No orderBy — snapshots are at most one per day, so even a year of daily
+// history is a small list. Sorted client-side to avoid a composite index.
+export const getNetWorthHistory = async (userId) => {
+  const q = query(collection(db, 'netWorthSnapshots'), where('userId', '==', userId));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+};
+
 // ─── Savings Goals ────────────────────────────────────────────────────────
 export const addSavingsGoal = async (userId, data) => {
   return addDoc(collection(db, 'savings'), {

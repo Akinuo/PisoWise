@@ -12,14 +12,16 @@ import CategoryIcon from '../components/common/CategoryIcon';
 import { formatPeso, formatDate, parsePesoInput, getCurrentMonthYear } from '../utils/formatters';
 import { exportTransactionsToCsv } from '../utils/csvExport';
 import { compressImageToBase64 } from '../utils/imageCompress';
+import { extractReceiptData } from '../services/groq';
 import { checkCategoryAlert } from '../utils/budgetAlerts';
 import RecurringBills from '../components/transactions/RecurringBills';
+import VoiceInput from '../components/common/VoiceInput';
 import { Timestamp } from '../services/firebase';
 import toast from 'react-hot-toast';
 import {
   HiPlus, HiArrowTrendingUp, HiArrowTrendingDown,
   HiTrash, HiArrowsRightLeft, HiXMark, HiMagnifyingGlass,
-  HiArrowDownTray, HiCamera,
+  HiArrowDownTray, HiCamera, HiMicrophone, HiSparkles, HiDocumentText,
 } from 'react-icons/hi2';
 
 const TABS    = ['Lahat', 'Kita', 'Gastos'];
@@ -42,6 +44,8 @@ export default function Transactions() {
   const [receiptPreview, setReceiptPreview] = useState(null);
   const [compressing,    setCompressing]    = useState(false);
   const [viewingReceipt, setViewingReceipt] = useState(null);
+  const [showVoicePanel, setShowVoicePanel] = useState(false);
+  const [scanningReceipt, setScanningReceipt] = useState(false);
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
     defaultValues: { date: new Date().toISOString().slice(0, 10) },
@@ -100,6 +104,46 @@ export default function Transactions() {
     if (displayed.length === 0) return;
     exportTransactionsToCsv(displayed, (id, type) => getCatInfo(id, type).label);
     toast.success('Na-export ang CSV!');
+  };
+
+  const handlePdfExport = async () => {
+    if (displayed.length === 0) return;
+    const label = activeFilter === 'Lahat' ? 'Lahat ng Transaksyon' : activeFilter;
+    const getCatLabelAny = (id) =>
+      EXPENSE_CATEGORIES.find(c => c.id === id)?.label || INCOME_CATEGORIES.find(c => c.id === id)?.label || id;
+    const { generateMonthlyReportPdf } = await import('../utils/pdfExport');
+    generateMonthlyReportPdf({
+      monthLabel: label,
+      transactions: displayed,
+      getCatLabel: getCatLabelAny,
+    });
+    toast.success('Na-export ang PDF!');
+  };
+
+  const handleVoiceResult = (parsed) => {
+    setTxType(parsed.type);
+    setValue('amount', String(parsed.amount || ''));
+    setValue('category', parsed.category);
+    setValue('description', parsed.description || '');
+    setShowVoicePanel(false);
+    toast.success('Napunan ang form mula sa boses!');
+  };
+
+  const handleScanReceipt = async () => {
+    if (!receiptPreview) return;
+    setScanningReceipt(true);
+    try {
+      const categoryIds = (txType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(c => c.id);
+      const result = await extractReceiptData(receiptPreview, categoryIds);
+      if (result.amount > 0) setValue('amount', String(result.amount));
+      if (result.description) setValue('description', result.description);
+      if (result.category) setValue('category', result.category);
+      toast.success('Nabasa ang resibo! I-check muna bago i-save.');
+    } catch (err) {
+      toast.error(err.message || 'Hindi nabasa ang resibo. Subukan ulit o i-type na lang.');
+    } finally {
+      setScanningReceipt(false);
+    }
   };
 
   const handleReceiptSelect = async (e) => {
@@ -185,12 +229,14 @@ export default function Transactions() {
     setTxType(type);
     reset({ date: new Date().toISOString().slice(0, 10) });
     setReceiptPreview(null);
+    setShowVoicePanel(false);
     setShowModal(true);
   };
 
   const closeModal = () => {
     setShowModal(false);
     setReceiptPreview(null);
+    setShowVoicePanel(false);
   };
 
   return (
@@ -207,6 +253,12 @@ export default function Transactions() {
                 className="btn-secondary py-2 px-3 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
                 aria-label="I-export bilang CSV">
                 <HiArrowDownTray className="w-4 h-4" />
+              </motion.button>
+              <motion.button whileTap={{ scale: 0.9 }} onClick={handlePdfExport}
+                disabled={displayed.length === 0}
+                className="btn-secondary py-2 px-3 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="I-export bilang PDF">
+                <HiDocumentText className="w-4 h-4" />
               </motion.button>
               <motion.button whileTap={{ scale: 0.9 }} onClick={() => openModal('expense')} className="btn-primary py-2 px-3.5 text-sm">
                 <HiPlus className="w-4 h-4" />
@@ -346,12 +398,34 @@ export default function Transactions() {
                 {/* Handle + close */}
                 <div className="flex items-center justify-between mb-5">
                   <div className="w-10 h-1 rounded-full bg-white/20" />
-                  <button onClick={closeModal}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-pw-muted hover:text-white transition-colors cursor-pointer"
-                    style={{ background: 'rgba(255,255,255,0.05)' }}>
-                    <HiXMark className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => setShowVoicePanel(v => !v)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+                        showVoicePanel ? 'bg-pw-gold text-pw-navy' : 'text-pw-muted hover:text-white'
+                      }`}
+                      style={showVoicePanel ? {} : { background: 'rgba(255,255,255,0.05)' }}
+                      aria-label="Gamitin ang boses">
+                      <HiMicrophone className="w-4 h-4" />
+                    </button>
+                    <button onClick={closeModal}
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-pw-muted hover:text-white transition-colors cursor-pointer"
+                      style={{ background: 'rgba(255,255,255,0.05)' }}>
+                      <HiXMark className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
+
+                {/* Voice input panel */}
+                <AnimatePresence>
+                  {showVoicePanel && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                      className="mb-5 overflow-hidden">
+                      <div className="glass-sm p-4">
+                        <VoiceInput onResult={handleVoiceResult} />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Type toggle */}
                 <div className="flex gap-2 mb-5">
@@ -437,11 +511,20 @@ export default function Transactions() {
                       Resibo <span className="normal-case text-pw-muted/60">(opsyonal)</span>
                     </label>
                     {receiptPreview ? (
-                      <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-white/10">
-                        <img src={receiptPreview} alt="Receipt preview" className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => setReceiptPreview(null)}
-                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center text-white">
-                          <HiXMark className="w-3 h-3" />
+                      <div className="flex items-center gap-3">
+                        <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-white/10 flex-shrink-0">
+                          <img src={receiptPreview} alt="Receipt preview" className="w-full h-full object-cover" />
+                          <button type="button" onClick={() => setReceiptPreview(null)}
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center text-white">
+                            <HiXMark className="w-3 h-3" />
+                          </button>
+                        </div>
+                        <button type="button" onClick={handleScanReceipt} disabled={scanningReceipt}
+                          className="btn-secondary py-2 px-3 text-xs gap-1.5 flex-shrink-0 disabled:opacity-50">
+                          {scanningReceipt
+                            ? <span className="w-3.5 h-3.5 rounded-full border-2 border-pw-muted border-t-transparent animate-spin" />
+                            : <HiSparkles className="w-3.5 h-3.5 text-pw-gold" />}
+                          {scanningReceipt ? 'Binabasa...' : 'Basahin ng AI'}
                         </button>
                       </div>
                     ) : (

@@ -234,4 +234,88 @@ Keep the answer under 200 words.`;
   return callGroq([{ role: 'user', content: prompt }], 500);
 };
 
-export default { generateBudget, generateSavingsStrategy, generateDebtPlan, generateEmergencyFundAdvice, generateWeeklyInsights, chatWithCoach, explainHealthScore, answerFinancialQuestion };
+// ─── Receipt Photo → Structured Data (Vision) ───────────────────────────
+//
+// Uses a vision-capable Groq model to read a receipt photo and extract the
+// total amount, a short description, and a best-guess category. This is a
+// separate path from callGroq() — vision requests need a different model
+// and a multimodal message shape (image + text in one content array), and
+// skip the financial-coach system prompt since it's not relevant here.
+//
+// Model name last verified against Groq's available models as of this
+// code's writing — if extraction starts failing outright, check
+// console.groq.com for the current vision-capable model name and update
+// VISION_MODEL below (and the ALLOWED_MODELS list in api/groq.js if the
+// proxy is deployed).
+const VISION_MODEL = 'llama-3.2-90b-vision-preview';
+
+export const extractReceiptData = async (imageBase64, categoryOptions) => {
+  const categoryList = categoryOptions.join(', ');
+  const promptText = `You're reading a receipt photo from a Filipino store or restaurant. Extract:
+1. "amount" — the TOTAL amount paid, as a plain number (no currency symbol, no commas)
+2. "description" — the store/merchant name, short (max 40 chars)
+3. "category" — pick the single best match from this exact list: ${categoryList}
+
+Respond with ONLY a JSON object, no other text, no markdown fences:
+{"amount": 000.00, "description": "...", "category": "..."}
+
+If you can't read a total amount clearly, set "amount" to 0. If unsure of category, use "other".`;
+
+  const messages = [{
+    role: 'user',
+    content: [
+      { type: 'text', text: promptText },
+      { type: 'image_url', image_url: { url: imageBase64 } },
+    ],
+  }];
+
+  const proxyUrl = import.meta.env.VITE_GROQ_PROXY_URL;
+  let raw;
+
+  if (proxyUrl) {
+    const response = await fetch(proxyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, max_tokens: 300, model: VISION_MODEL }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || `Groq proxy error: ${response.status}`);
+    }
+    const data = await response.json();
+    raw = data.choices?.[0]?.message?.content?.trim() ?? '';
+  } else {
+    const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+    if (!apiKey) throw new Error('Neither VITE_GROQ_PROXY_URL nor VITE_GROQ_API_KEY is configured.');
+
+    const response = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: VISION_MODEL, messages, max_tokens: 300, temperature: 0.2 }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error?.message || `Groq API error: ${response.status}`);
+    }
+    const data = await response.json();
+    raw = data.choices?.[0]?.message?.content?.trim() ?? '';
+  }
+
+  // Strip markdown code fences if the model added them despite instructions.
+  const cleaned = raw.replace(/```json|```/g, '').trim();
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch {
+    throw new Error('Hindi na-parse ang resulta ng pagbasa ng resibo.');
+  }
+
+  const amount = Number(parsed.amount) || 0;
+  return {
+    amount,
+    description: String(parsed.description || '').slice(0, 40),
+    category: categoryOptions.includes(parsed.category) ? parsed.category : 'other',
+  };
+};
+
+export default { generateBudget, generateSavingsStrategy, generateDebtPlan, generateEmergencyFundAdvice, generateWeeklyInsights, chatWithCoach, explainHealthScore, answerFinancialQuestion, extractReceiptData };

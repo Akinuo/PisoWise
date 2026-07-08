@@ -1,12 +1,14 @@
 // src/pages/Dashboard.jsx
 import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
 import { shallow } from 'zustand/shallow';
 import LoadingScreen from '../components/common/LoadingScreen';
 import RecurringBills from '../components/transactions/RecurringBills';
+import { maybeSnapshotNetWorth } from '../utils/netWorth';
+import { WIDGETS, getWidgetVisibility, setWidgetVisibility } from '../utils/dashboardWidgets';
 import {
   getTransactions, getSavingsGoals, getDebts, getInsights,
 } from '../services/firebase';
@@ -15,7 +17,7 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants';
 import {
   HiArrowTrendingUp, HiArrowTrendingDown, HiBanknotes,
   HiShieldCheck, HiSparkles, HiCreditCard, HiChevronRight,
-  HiArrowsRightLeft, HiAcademicCap, HiChartBar,
+  HiArrowsRightLeft, HiAcademicCap, HiChartBar, HiCog6Tooth, HiXMark,
 } from 'react-icons/hi2';
 import CategoryIcon from '../components/common/CategoryIcon';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
@@ -49,6 +51,14 @@ export default function Dashboard() {
   }), shallow);
 
   const [loading, setLoading] = useState(!transactionsLoaded);
+  const [widgets, setWidgets] = useState(() => getWidgetVisibility());
+  const [showCustomize, setShowCustomize] = useState(false);
+
+  const toggleWidget = (id) => {
+    const updated = { ...widgets, [id]: !widgets[id] };
+    setWidgets(updated);
+    setWidgetVisibility(updated);
+  };
 
   const now   = new Date();
   const month = now.getMonth() + 1;
@@ -73,6 +83,10 @@ export default function Dashboard() {
         if (!savingsLoaded)      setSavings(savs);
         if (!debtsLoaded)        setDebts(dbs);
         setInsights(ins);
+
+        const totalSavings = savs.reduce((s, g) => s + (g.currentAmount || 0), 0);
+        const totalDebt    = dbs.reduce((s, d) => s + (d.remainingAmount || 0), 0);
+        maybeSnapshotNetWorth(user.uid, { totalSavings, totalDebt });
       } catch (e) {
         console.error('Dashboard load error:', e);
       } finally {
@@ -130,24 +144,34 @@ export default function Dashboard() {
               <p className="text-pw-muted text-xs font-medium uppercase tracking-widest mb-1">{greeting}</p>
               <h1 className="font-display text-3xl text-white leading-none">{firstName}</h1>
             </div>
-            <Link to="/profile">
-              <motion.div
-                whileTap={{ scale: 0.92 }}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white cursor-pointer"
-                style={{
-                  background: 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)',
-                  boxShadow: '0 0 0 2px rgba(255,255,255,0.08), 0 4px 12px rgba(29,78,216,0.35)',
-                }}
-              >
-                {firstName[0].toUpperCase()}
-              </motion.div>
-            </Link>
+            <div className="flex items-center gap-2.5">
+              <button onClick={() => setShowCustomize(true)}
+                className="w-9 h-9 rounded-full flex items-center justify-center text-pw-muted hover:text-white transition-colors"
+                style={{ background: 'rgba(255,255,255,0.05)' }}
+                aria-label="I-customize ang Dashboard">
+                <HiCog6Tooth className="w-4 h-4" />
+              </button>
+              <Link to="/profile">
+                <motion.div
+                  whileTap={{ scale: 0.92 }}
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white cursor-pointer"
+                  style={{
+                    background: 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)',
+                    boxShadow: '0 0 0 2px rgba(255,255,255,0.08), 0 4px 12px rgba(29,78,216,0.35)',
+                  }}
+                >
+                  {firstName[0].toUpperCase()}
+                </motion.div>
+              </Link>
+            </div>
           </motion.div>
 
           {/* ── Recurring Bill Reminders ── */}
-          <motion.div variants={item}>
-            <RecurringBills />
-          </motion.div>
+          {widgets.recurringBills && (
+            <motion.div variants={item}>
+              <RecurringBills />
+            </motion.div>
+          )}
 
           {/* ── Hero Balance Card ── */}
           <motion.div variants={item}>
@@ -215,7 +239,7 @@ export default function Dashboard() {
           </motion.div>
 
           {/* ── 7-Day Chart ── */}
-          {chartData.some(d => d.income > 0 || d.expense > 0) && (
+          {widgets.chart && chartData.some(d => d.income > 0 || d.expense > 0) && (
             <motion.div variants={item}>
               <div className="glass p-4">
                 <p className="section-title mb-3">7-Araw na Gastos</p>
@@ -251,6 +275,7 @@ export default function Dashboard() {
           )}
 
           {/* ── Health Score + Savings Stats ── */}
+          {widgets.healthScore && (
           <motion.div variants={item} className="grid grid-cols-2 gap-3">
             <Link to="/insights">
               <motion.div whileTap={{ scale: 0.97 }} className="glass p-4 flex flex-col items-center gap-3 h-full cursor-pointer hover:border-pw-gold/20 transition-colors">
@@ -287,8 +312,10 @@ export default function Dashboard() {
               </motion.div>
             </Link>
           </motion.div>
+          )}
 
           {/* ── Quick Actions ── */}
+          {widgets.quickActions && (
           <motion.div variants={item}>
             <p className="section-title">Mabilis na Aksyon</p>
             <div className="grid grid-cols-2 gap-2.5">
@@ -313,6 +340,7 @@ export default function Dashboard() {
               ))}
             </div>
           </motion.div>
+          )}
 
           {/* ── AI Insight Preview ── */}
           {insights.length > 0 && (
@@ -337,6 +365,7 @@ export default function Dashboard() {
           )}
 
           {/* ── Recent Transactions ── */}
+          {widgets.recentTransactions && (
           <motion.div variants={item}>
             <div className="flex items-center justify-between mb-3">
               <p className="section-title mb-0">Mga Kamakailang Transaksyon</p>
@@ -377,8 +406,10 @@ export default function Dashboard() {
               </div>
             )}
           </motion.div>
+          )}
 
           {/* ── Quick links footer ── */}
+          {widgets.quickLinks && (
           <motion.div variants={item} className="grid grid-cols-3 gap-2.5 pb-4">
             {[
               { to: '/cards',    icon: HiCreditCard,  label: 'Mga Card' },
@@ -396,9 +427,52 @@ export default function Dashboard() {
               </Link>
             ))}
           </motion.div>
+          )}
 
         </motion.div>
       </div>
+
+      {/* ── Customize Widgets Panel ── */}
+      <AnimatePresence>
+        {showCustomize && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50" onClick={() => setShowCustomize(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: '100%' }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: '100%' }}
+              transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+              className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl px-6 pt-6 max-h-[80dvh] overflow-y-auto sheet-modal"
+              style={{ background: 'rgba(12,22,40,0.98)', backdropFilter: 'blur(28px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-5" />
+              <div className="flex items-center justify-between mb-1">
+                <h2 className="font-display text-xl font-bold text-white">I-customize ang Dashboard</h2>
+                <button onClick={() => setShowCustomize(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-pw-muted hover:text-white"
+                  style={{ background: 'rgba(255,255,255,0.05)' }}>
+                  <HiXMark className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-pw-muted text-sm mb-5">Piliin kung anong mga widget ang ipapakita.</p>
+
+              <div className="space-y-2 pb-4">
+                {WIDGETS.map(w => (
+                  <button key={w.id} onClick={() => toggleWidget(w.id)}
+                    className="w-full flex items-center justify-between glass-sm p-3.5 cursor-pointer">
+                    <span className="text-white text-sm">{w.label}</span>
+                    <div className={`w-10 h-6 rounded-full relative transition-colors flex-shrink-0 ${
+                      widgets[w.id] ? 'bg-pw-gold' : 'bg-white/10'
+                    }`}>
+                      <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                        widgets[w.id] ? 'translate-x-[18px]' : 'translate-x-0.5'
+                      }`} />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -158,6 +158,28 @@ export const groupByDay = (transactions, days = 7) => {
   return result;
 };
 
+export const groupByMonth = (transactions, months = 6) => {
+  const result = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(1); // avoid month-length rollover issues (e.g. Jan 31 - 1 month)
+    d.setMonth(d.getMonth() - i);
+    const monthKey = `${d.getFullYear()}-${d.getMonth()}`;
+    const monthTxs = transactions.filter(t => {
+      const txDate = t.date?.toDate ? t.date.toDate() : new Date(t.date);
+      return `${txDate.getFullYear()}-${txDate.getMonth()}` === monthKey;
+    });
+    result.push({
+      label:   d.toLocaleDateString('en-PH', { month: 'short', year: '2-digit' }),
+      month:   d.getMonth() + 1,
+      year:    d.getFullYear(),
+      income:  monthTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0),
+      expense: monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0),
+    });
+  }
+  return result;
+};
+
 // ─── String Helpers ───────────────────────────────────────────────────────
 export const truncate = (str, len = 20) =>
   str && str.length > len ? str.slice(0, len) + '...' : str;

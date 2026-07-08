@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   HiHome, HiArrowsRightLeft, HiSparkles,
-  HiAcademicCap, HiChartBar,
+  HiAcademicCap, HiChartBar, HiDocumentChartBar,
   HiCreditCard, HiShieldCheck, HiBanknotes,
   HiArrowRightOnRectangle,
 } from 'react-icons/hi2';
@@ -14,6 +14,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/',         icon: HiHome,    label: 'Dashboard' },
       { to: '/insights', icon: HiChartBar, label: 'AI Insights' },
+      { to: '/reports',  icon: HiDocumentChartBar, label: 'Reports' },
     ],
   },
   {
