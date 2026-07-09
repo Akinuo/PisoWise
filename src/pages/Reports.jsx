@@ -1,16 +1,18 @@
 // src/pages/Reports.jsx
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import useStore from '../store/useStore';
+import { shallow } from 'zustand/shallow';
 import { getTransactions, getNetWorthHistory } from '../services/firebase';
 import { formatPeso, groupByMonth } from '../utils/formatters';
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants';
+import { getCategoryLabel } from '../utils/constants';
 import LoadingScreen from '../components/common/LoadingScreen';
 import {
   AreaChart, Area, LineChart, Line, XAxis, YAxis,
   ResponsiveContainer, Tooltip, CartesianGrid,
 } from 'recharts';
-import { HiDocumentChartBar, HiArrowDownTray, HiArrowTrendingUp, HiArrowTrendingDown } from 'react-icons/hi2';
+import { HiDocumentChartBar, HiArrowDownTray, HiArrowTrendingUp, HiArrowTrendingDown, HiArrowPath } from 'react-icons/hi2';
 
 const tooltipStyle = {
   contentStyle: {
@@ -25,31 +27,46 @@ const tooltipStyle = {
 
 export default function Reports() {
   const { user } = useAuth();
-  const [transactions, setTransactions] = useState([]);
-  const [netWorthHistory, setNetWorthHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { transactions, netWorthHistory, reportsLoaded, setReportsData } = useStore((s) => ({
+    transactions: s.reportsTransactions,
+    netWorthHistory: s.netWorthHistory,
+    reportsLoaded: s.reportsLoaded,
+    setReportsData: s.setReportsData,
+  }), shallow);
+  const [loading, setLoading] = useState(!reportsLoaded);
+  const [refreshing, setRefreshing] = useState(false);
   const [range, setRange] = useState('monthly'); // 'monthly' (6mo) | 'yearly' (12mo)
 
   // Reports needs a much larger, independent transaction history than the
-  // ~60 the rest of the app caches in the store — fetched fresh here rather
-  // than reusing the shared Zustand cache.
+  // ~60 the rest of the app caches for other pages, so it's kept in its own
+  // store slice and fetched at most once per session — repeat visits reuse
+  // the cache instead of re-reading up to 3000 docs from Firestore each
+  // time (meaningful on Spark's daily read cap). Use the refresh button
+  // below if you've just added something and want the numbers to reflect it.
+  const loadReports = useCallback(async (uid) => {
+    const [txs, nw] = await Promise.all([
+      getTransactions(uid, 3000),
+      getNetWorthHistory(uid),
+    ]);
+    setReportsData(txs, nw.sort((a, b) => a.date.localeCompare(b.date)));
+  }, [setReportsData]);
+
   useEffect(() => {
-    if (!user) return;
-    (async () => {
-      try {
-        const [txs, nw] = await Promise.all([
-          getTransactions(user.uid, 3000),
-          getNetWorthHistory(user.uid),
-        ]);
-        setTransactions(txs);
-        setNetWorthHistory(nw.sort((a, b) => a.date.localeCompare(b.date)));
-      } catch (e) {
-        console.error('Reports load error:', e);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [user]);
+    if (!user || reportsLoaded) { setLoading(false); return; }
+    loadReports(user.uid).catch(e => console.error('Reports load error:', e)).finally(() => setLoading(false));
+  }, [user, reportsLoaded, loadReports]);
+
+  const handleRefresh = async () => {
+    if (!user || refreshing) return;
+    setRefreshing(true);
+    try {
+      await loadReports(user.uid);
+    } catch (e) {
+      console.error('Reports refresh error:', e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const months = range === 'yearly' ? 12 : 6;
   const trendData = useMemo(() => groupByMonth(transactions, months), [transactions, months]);
@@ -61,8 +78,6 @@ export default function Reports() {
     return { income, expenses, net: income - expenses, avgMonthlyExpense };
   }, [trendData]);
 
-  const getCatLabelAny = (id) =>
-    EXPENSE_CATEGORIES.find(c => c.id === id)?.label || INCOME_CATEGORIES.find(c => c.id === id)?.label || id;
 
   const topCategories = useMemo(() => {
     const cutoff = new Date();
@@ -76,7 +91,7 @@ export default function Reports() {
     return Object.entries(byCategory)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
-      .map(([cat, amt]) => ({ label: getCatLabelAny(cat), amount: amt }));
+      .map(([cat, amt]) => ({ label: getCategoryLabel(cat), amount: amt }));
   }, [transactions, months]);
 
   const netWorthChartData = useMemo(
@@ -99,7 +114,7 @@ export default function Reports() {
     generateMonthlyReportPdf({
       monthLabel: range === 'yearly' ? 'Nakaraang 12 Buwan' : 'Nakaraang 6 Buwan',
       transactions: inRange,
-      getCatLabel: getCatLabelAny,
+      getCatLabel: getCategoryLabel,
     });
   };
 
@@ -122,10 +137,18 @@ export default function Reports() {
               </div>
               <p className="text-pw-muted text-sm">Pagsusuri ng iyong pinansyal na kalagayan</p>
             </div>
-            <button onClick={handlePdfExport} disabled={transactions.length === 0}
-              className="btn-secondary py-2 px-3 text-xs gap-1.5 flex-shrink-0 disabled:opacity-40">
-              <HiArrowDownTray className="w-3.5 h-3.5" /> PDF
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button onClick={handleRefresh} disabled={refreshing}
+                className="w-9 h-9 rounded-full flex items-center justify-center text-pw-muted hover:text-white transition-colors disabled:opacity-50"
+                style={{ background: 'rgba(255,255,255,0.05)' }}
+                aria-label="I-refresh ang datos">
+                <HiArrowPath className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+              <button onClick={handlePdfExport} disabled={transactions.length === 0}
+                className="btn-secondary py-2 px-3 text-xs gap-1.5 disabled:opacity-40">
+                <HiArrowDownTray className="w-3.5 h-3.5" /> PDF
+              </button>
+            </div>
           </div>
 
           {/* Range toggle */}

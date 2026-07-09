@@ -9,7 +9,7 @@ import {
   addTransaction, addRecurringTransaction, getRecurringTransactions,
   updateRecurringTransaction, deleteRecurringTransaction, Timestamp,
 } from '../../services/firebase';
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../../utils/constants';
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getCategoryInfo } from '../../utils/constants';
 import CategoryIcon from '../common/CategoryIcon';
 import { formatPeso, parsePesoInput } from '../../utils/formatters';
 import { advanceDueDate, getDueStatus, getDueLabel, FREQUENCY_LABELS } from '../../utils/recurring';
@@ -55,11 +55,6 @@ export default function RecurringBills() {
   const dueOrOverdue = active
     .filter(r => getDueStatus(r.nextDueDate) !== 'upcoming')
     .sort((a, b) => a.nextDueDate.localeCompare(b.nextDueDate));
-
-  const getCatInfo = (id, type) => {
-    const cats = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
-    return cats.find(c => c.id === id) || { id: 'other', label: id, color: '#6B7280' };
-  };
 
   const onAddSubmit = async (data) => {
     if (!user) return;
@@ -136,7 +131,7 @@ export default function RecurringBills() {
           </div>
           <div className="space-y-2">
             {dueOrOverdue.map(r => {
-              const cat = getCatInfo(r.category, r.type);
+              const cat = getCategoryInfo(r.category, r.type);
               const status = getDueStatus(r.nextDueDate);
               return (
                 <div key={r.id} className="flex items-center gap-2.5">
@@ -208,7 +203,7 @@ export default function RecurringBills() {
                     ) : (
                       <div className="space-y-2 mb-4">
                         {[...active].sort((a, b) => a.nextDueDate.localeCompare(b.nextDueDate)).map(r => {
-                          const cat = getCatInfo(r.category, r.type);
+                          const cat = getCategoryInfo(r.category, r.type);
                           return (
                             <div key={r.id} className="glass-sm p-3 flex items-center gap-3">
                               <div className="icon-box-sm flex-shrink-0" style={{ background: `${cat.color}18` }}>

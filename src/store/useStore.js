@@ -52,6 +52,15 @@ const useStore = create((set, get) => ({
   removeRecurringLocal: (id) =>
     set((s) => ({ recurringTransactions: s.recurringTransactions.filter(r => r.id !== id) })),
 
+  // ── Reports (much larger transaction history than the ~60 cached above,
+  // kept separate so it doesn't bloat every other page's dataset) ────────
+  reportsTransactions: [],
+  reportsLoaded: false,
+  netWorthHistory: [],
+  netWorthHistoryLoaded: false,
+  setReportsData: (reportsTransactions, netWorthHistory) =>
+    set({ reportsTransactions, reportsLoaded: true, netWorthHistory, netWorthHistoryLoaded: true }),
+
   // ── Insights ─────────────────────────────────────────────────────────
   insights: [],
   insightsLoaded: false,
@@ -106,6 +115,10 @@ const useStore = create((set, get) => ({
     cardsLoaded:        false,
     recurringTransactions:       [],
     recurringTransactionsLoaded: false,
+    reportsTransactions:      [],
+    reportsLoaded:            false,
+    netWorthHistory:          [],
+    netWorthHistoryLoaded:    false,
     insights:           [],
     insightsLoaded:     false,
     chatHistory:        [],

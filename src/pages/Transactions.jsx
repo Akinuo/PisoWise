@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
 import { shallow } from 'zustand/shallow';
 import { addTransaction, deleteTransaction, getTransactions, getBudget } from '../services/firebase';
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants';
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getCategoryInfo, getCategoryLabel } from '../utils/constants';
 import CategoryIcon from '../components/common/CategoryIcon';
 import { formatPeso, formatDate, parsePesoInput, getCurrentMonthYear } from '../utils/formatters';
 import { exportTransactionsToCsv } from '../utils/csvExport';
@@ -67,10 +67,6 @@ export default function Transactions() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const getCatInfo = (id, type) => {
-    const cats = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
-    return cats.find(c => c.id === id) || { id: 'other', label: id, color: '#6B7280' };
-  };
 
   const filterTxs = (txs) => {
     const now = new Date();
@@ -80,7 +76,7 @@ export default function Transactions() {
       if (activeTab === 'Kita'   && t.type !== 'income')  return false;
       if (activeTab === 'Gastos' && t.type !== 'expense') return false;
       if (q) {
-        const label = getCatInfo(t.category, t.type).label.toLowerCase();
+        const label = getCategoryInfo(t.category, t.type).label.toLowerCase();
         const haystack = `${t.description || ''} ${t.note || ''} ${label}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
@@ -102,20 +98,18 @@ export default function Transactions() {
 
   const handleExport = () => {
     if (displayed.length === 0) return;
-    exportTransactionsToCsv(displayed, (id, type) => getCatInfo(id, type).label);
+    exportTransactionsToCsv(displayed, (id, type) => getCategoryInfo(id, type).label);
     toast.success('Na-export ang CSV!');
   };
 
   const handlePdfExport = async () => {
     if (displayed.length === 0) return;
     const label = activeFilter === 'Lahat' ? 'Lahat ng Transaksyon' : activeFilter;
-    const getCatLabelAny = (id) =>
-      EXPENSE_CATEGORIES.find(c => c.id === id)?.label || INCOME_CATEGORIES.find(c => c.id === id)?.label || id;
     const { generateMonthlyReportPdf } = await import('../utils/pdfExport');
     generateMonthlyReportPdf({
       monthLabel: label,
       transactions: displayed,
-      getCatLabel: getCatLabelAny,
+      getCatLabel: getCategoryLabel,
     });
     toast.success('Na-export ang PDF!');
   };
@@ -195,7 +189,7 @@ export default function Transactions() {
             .reduce((s, t) => s + t.amount, 0) + amount;
           const alert = checkCategoryAlert(data.category, spentThisMonth, activeBudget.categoryLimits);
           if (alert) {
-            const label = getCatInfo(data.category, 'expense').label;
+            const label = getCategoryInfo(data.category, 'expense').label;
             if (alert.level === 'over') {
               toast(`⚠️ Nalagpasan mo na ang budget mo sa ${label} ngayong buwan (${alert.percent}%).`, { duration: 5000 });
             } else {
@@ -339,7 +333,7 @@ export default function Transactions() {
           ) : (
             <div className="glass overflow-hidden">
               {displayed.map((tx, i) => {
-                const cat = getCatInfo(tx.category, tx.type);
+                const cat = getCategoryInfo(tx.category, tx.type);
                 return (
                   <motion.div key={tx.id} layout initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }}>
                     <div className={`flex items-center gap-3 px-4 py-3.5 ${i < displayed.length - 1 ? 'border-b border-white/[0.045]' : ''}`}>

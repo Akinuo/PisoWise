@@ -36,6 +36,20 @@ export const INCOME_CATEGORIES = [
   { id: 'other',       label: 'Iba pa',             icon: '📦', color: '#6B7280' },
 ];
 
+// ─── Category Lookup Helpers ────────────────────────────────────────────
+// Shared by any page/component that needs to resolve a category id back to
+// its display info — avoids each file reimplementing the same lookup.
+export const getCategoryInfo = (id, type) => {
+  const cats = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  return cats.find(c => c.id === id) || { id: 'other', label: id, color: '#6B7280' };
+};
+
+// For contexts where the transaction type isn't known/relevant up front
+// (e.g. an export spanning both income and expense rows) — checks both
+// lists rather than requiring the caller to know which one to search.
+export const getCategoryLabel = (id) =>
+  EXPENSE_CATEGORIES.find(c => c.id === id)?.label || INCOME_CATEGORIES.find(c => c.id === id)?.label || id;
+
 // ─── Card Types ───────────────────────────────────────────────────────────
 export const CARD_TYPES = [
   { id: 'visa',       label: 'Visa',        icon: '💳', color: '#1A1F71' },
