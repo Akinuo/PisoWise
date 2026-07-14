@@ -39,16 +39,40 @@ export const INCOME_CATEGORIES = [
 // ─── Category Lookup Helpers ────────────────────────────────────────────
 // Shared by any page/component that needs to resolve a category id back to
 // its display info — avoids each file reimplementing the same lookup.
+// Language-aware: reads the current language directly from the store
+// (rather than requiring every caller to be a hook) so these plain
+// functions still translate correctly. Re-renders happen naturally because
+// every page also calls useTranslation() for its own UI text, which
+// subscribes to language changes — see src/i18n/useTranslation.js.
+import useStore from '../store/useStore';
+import { TRANSLATIONS } from '../i18n/translations';
+
+const translateCategoryLabel = (id, fallbackLabel, remittanceType) => {
+  const language = useStore.getState().language;
+  const dict = TRANSLATIONS[language] || TRANSLATIONS.fil;
+  if (id === 'remittance' && remittanceType) {
+    return dict.remittanceLabel?.[remittanceType] || fallbackLabel;
+  }
+  return dict.categories?.[id] || fallbackLabel;
+};
+
 export const getCategoryInfo = (id, type) => {
   const cats = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
-  return cats.find(c => c.id === id) || { id: 'other', label: id, color: '#6B7280' };
+  const found = cats.find(c => c.id === id) || { id: 'other', label: id, color: '#6B7280' };
+  return { ...found, label: translateCategoryLabel(found.id, found.label, type) };
 };
 
 // For contexts where the transaction type isn't known/relevant up front
 // (e.g. an export spanning both income and expense rows) — checks both
 // lists rather than requiring the caller to know which one to search.
-export const getCategoryLabel = (id) =>
-  EXPENSE_CATEGORIES.find(c => c.id === id)?.label || INCOME_CATEGORIES.find(c => c.id === id)?.label || id;
+// Note: 'remittance' exists in both lists with different labels — this
+// defaults to the expense phrasing since that's the far more common case
+// (sending money), matching the previous behavior of this function.
+export const getCategoryLabel = (id) => {
+  const found = EXPENSE_CATEGORIES.find(c => c.id === id) || INCOME_CATEGORIES.find(c => c.id === id);
+  if (!found) return id;
+  return translateCategoryLabel(found.id, found.label, id === 'remittance' ? 'expense' : undefined);
+};
 
 // ─── Card Types ───────────────────────────────────────────────────────────
 export const CARD_TYPES = [

@@ -1,20 +1,22 @@
 // src/components/common/BottomNav.jsx
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from '../../i18n/useTranslation';
 import {
   HiHome, HiArrowsRightLeft, HiSparkles,
   HiAcademicCap, HiUser,
 } from 'react-icons/hi2';
 
-const NAV_ITEMS = [
-  { to: '/',             icon: HiHome,              label: 'Home' },
-  { to: '/transactions', icon: HiArrowsRightLeft,   label: 'Gastos' },
-  { to: '/budget',       icon: HiSparkles,          label: 'AI Budget', center: true },
-  { to: '/lessons',      icon: HiAcademicCap,       label: 'Aralin' },
-  { to: '/profile',      icon: HiUser,              label: 'Profile' },
-];
-
 export default function BottomNav() {
+  const { t } = useTranslation();
+  const NAV_ITEMS = [
+    { to: '/',             icon: HiHome,              label: t('nav.dashboard') },
+    { to: '/transactions', icon: HiArrowsRightLeft,   label: t('nav.transactions') },
+    { to: '/budget',       icon: HiSparkles,          label: t('nav.budget'), center: true },
+    { to: '/lessons',      icon: HiAcademicCap,       label: t('nav.lessons') },
+    { to: '/profile',      icon: HiUser,              label: t('nav.profile') },
+  ];
+
   return (
     <nav className="bottom-nav md:hidden">
       <div className="flex items-center justify-around px-1 py-1.5">

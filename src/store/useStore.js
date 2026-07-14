@@ -32,6 +32,15 @@ const useStore = create((set, get) => ({
   removeDebtLocal: (id) =>
     set((s) => ({ debts: s.debts.filter(d => d.id !== id) })),
 
+  // ── Language (UI translation) ──────────────────────────────────────────
+  language: (() => {
+    try { return localStorage.getItem('pw_language') || 'fil'; } catch { return 'fil'; }
+  })(),
+  setLanguage: (language) => {
+    try { localStorage.setItem('pw_language', language); } catch { /* ignore */ }
+    set({ language });
+  },
+
   // ── Cards ────────────────────────────────────────────────────────────
   cards: [],
   cardsLoaded: false,

@@ -1,6 +1,7 @@
 // src/components/common/DesktopSidebar.jsx
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../i18n/useTranslation';
 import {
   HiHome, HiArrowsRightLeft, HiSparkles,
   HiAcademicCap, HiChartBar, HiDocumentChartBar,
@@ -8,35 +9,36 @@ import {
   HiArrowRightOnRectangle,
 } from 'react-icons/hi2';
 
-const NAV_GROUPS = [
-  {
-    label: 'Overview',
-    items: [
-      { to: '/',         icon: HiHome,    label: 'Dashboard' },
-      { to: '/insights', icon: HiChartBar, label: 'AI Insights' },
-      { to: '/reports',  icon: HiDocumentChartBar, label: 'Reports' },
-    ],
-  },
-  {
-    label: 'Finance',
-    items: [
-      { to: '/transactions', icon: HiArrowsRightLeft, label: 'Transactions' },
-      { to: '/budget',       icon: HiSparkles,        label: 'AI Budget' },
-      { to: '/savings',      icon: HiBanknotes,       label: 'Savings Goals' },
-      { to: '/debts',        icon: HiShieldCheck,     label: 'Debt Manager' },
-      { to: '/cards',        icon: HiCreditCard,      label: 'Card Wallet' },
-    ],
-  },
-  {
-    label: 'Learn',
-    items: [
-      { to: '/lessons', icon: HiAcademicCap, label: 'Financial Lessons' },
-    ],
-  },
-];
-
 export default function DesktopSidebar() {
   const { user, profile, logout } = useAuth();
+  const { t } = useTranslation();
+
+  const NAV_GROUPS = [
+    {
+      label: t('sidebar.overview'),
+      items: [
+        { to: '/',         icon: HiHome,    label: t('sidebar.dashboard') },
+        { to: '/insights', icon: HiChartBar, label: t('sidebar.insights') },
+        { to: '/reports',  icon: HiDocumentChartBar, label: t('sidebar.reports') },
+      ],
+    },
+    {
+      label: t('sidebar.finance'),
+      items: [
+        { to: '/transactions', icon: HiArrowsRightLeft, label: t('sidebar.transactions') },
+        { to: '/budget',       icon: HiSparkles,        label: t('sidebar.budget') },
+        { to: '/savings',      icon: HiBanknotes,       label: t('sidebar.savingsGoals') },
+        { to: '/debts',        icon: HiShieldCheck,     label: t('sidebar.debtManager') },
+        { to: '/cards',        icon: HiCreditCard,      label: t('sidebar.cardWallet') },
+      ],
+    },
+    {
+      label: t('sidebar.learn'),
+      items: [
+        { to: '/lessons', icon: HiAcademicCap, label: t('sidebar.financialLessons') },
+      ],
+    },
+  ];
 
   return (
     <aside
@@ -63,7 +65,7 @@ export default function DesktopSidebar() {
           </div>
           <div>
             <h1 className="font-display text-white text-lg leading-none" style={{ letterSpacing: '-0.01em' }}>PisoWise</h1>
-            <p className="text-[11px] text-pw-muted mt-0.5 font-medium uppercase tracking-widest">Smart Finance</p>
+            <p className="text-[11px] text-pw-muted mt-0.5 font-medium uppercase tracking-widest">{t('sidebar.tagline')}</p>
           </div>
         </div>
       </div>
@@ -130,7 +132,7 @@ export default function DesktopSidebar() {
           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
         >
           <HiArrowRightOnRectangle style={{ width: 16, height: 16 }} />
-          Sign Out
+          {t('sidebar.signOut')}
         </button>
       </div>
     </aside>

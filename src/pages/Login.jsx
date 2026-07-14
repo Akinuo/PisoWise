@@ -6,10 +6,12 @@ import { useForm } from 'react-hook-form';
 import { FcGoogle } from 'react-icons/fc';
 import { HiEye, HiEyeSlash, HiEnvelope, HiLockClosed } from 'react-icons/hi2';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../i18n/useTranslation';
 import toast from 'react-hot-toast';
 
 export default function Login() {
   const { login, googleSignIn, forgotPassword } = useAuth();
+  const { t } = useTranslation();
   const navigate                  = useNavigate();
   const [showPw, setShowPw]       = useState(false);
   const [loading, setLoading]     = useState(false);
@@ -33,10 +35,10 @@ export default function Login() {
 
   const handleReset = async () => {
     const email = getValues('email');
-    if (!email) { toast.error('Ilagay muna ang iyong email.'); return; }
+    if (!email) { toast.error(t('auth.emailFirst')); return; }
     try {
       await forgotPassword(email);
-      toast.success('Naipadala na ang reset link!');
+      toast.success(t('auth.resetSent'));
       setShowReset(false);
     } catch (e) {
       toast.error(e.message);
@@ -47,7 +49,7 @@ export default function Login() {
     setGoogleLoading(true);
     try {
       await googleSignIn();
-      toast.success('Naka-sign in na gamit ang Google!');
+      toast.success(t('auth.googleSignedIn'));
       navigate('/', { replace: true });
     } catch (e) {
       toast.error(e.message);
@@ -87,7 +89,7 @@ export default function Login() {
           ₱
         </div>
         <h1 className="font-display text-4xl text-white leading-none mb-1.5">PisoWise</h1>
-        <p className="text-pw-muted text-sm font-medium">Mag-login sa inyong account</p>
+        <p className="text-pw-muted text-sm font-medium">{t('auth.loginSubtitle')}</p>
       </motion.div>
 
       {/* Card */}
@@ -114,20 +116,20 @@ export default function Login() {
           ) : (
             <FcGoogle style={{ width: 18, height: 18, flexShrink: 0 }} />
           )}
-          Mag-login gamit ang Google
+          {t('auth.continueGoogle')}
         </button>
 
         {/* Divider */}
         <div className="flex items-center gap-3 my-5">
           <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.09)' }} />
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-pw-muted">o</span>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-pw-muted">{t('auth.or')}</span>
           <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.09)' }} />
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Email */}
           <div>
-            <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">Email</label>
+            <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">{t('auth.email')}</label>
             <div className="relative">
               <HiEnvelope
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pw-muted"
@@ -135,12 +137,12 @@ export default function Login() {
               />
               <input
                 type="email"
-                placeholder="ikaw@email.com"
+                placeholder={t('auth.emailPlaceholder')}
                 autoComplete="email"
                 className="input-glass pl-10"
                 {...register('email', {
-                  required: 'Kinakailangan ang email',
-                  pattern: { value: /\S+@\S+\.\S+/, message: 'Di-wastong email' },
+                  required: t('auth.emailRequired'),
+                  pattern: { value: /\S+@\S+\.\S+/, message: t('auth.emailInvalid') },
                 })}
               />
             </div>
@@ -149,7 +151,7 @@ export default function Login() {
 
           {/* Password */}
           <div>
-            <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">Password</label>
+            <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">{t('auth.password')}</label>
             <div className="relative">
               <HiLockClosed
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pw-muted"
@@ -160,7 +162,7 @@ export default function Login() {
                 placeholder="••••••••"
                 autoComplete="current-password"
                 className="input-glass pl-10 pr-11"
-                {...register('password', { required: 'Kinakailangan ang password' })}
+                {...register('password', { required: t('auth.passwordRequired') })}
               />
               <button
                 type="button"
@@ -183,7 +185,7 @@ export default function Login() {
               onClick={() => setShowReset(v => !v)}
               className="text-xs text-pw-blue-light hover:underline font-medium cursor-pointer"
             >
-              Nakalimutan ang password?
+              {t('auth.forgotPassword')}
             </button>
           </div>
 
@@ -194,14 +196,14 @@ export default function Login() {
               className="glass-sm p-3.5"
             >
               <p className="text-xs text-pw-muted mb-2.5 leading-relaxed">
-                Ipapadala ang reset link sa email na nasa itaas.
+                {t('auth.resetInfo')}
               </p>
               <button
                 type="button"
                 onClick={handleReset}
                 className="btn-secondary text-xs py-2 w-full"
               >
-                Ipadala ang Reset Link
+                {t('auth.sendResetLink')}
               </button>
             </motion.div>
           )}
@@ -210,18 +212,18 @@ export default function Login() {
             {loading ? (
               <span className="flex items-center gap-2 justify-center">
                 <span className="w-3.5 h-3.5 rounded-full border-2 border-pw-navy border-t-transparent animate-spin" />
-                Nag-login…
+                {t('auth.loggingIn')}
               </span>
-            ) : 'Mag-login'}
+            ) : t('auth.login')}
           </button>
         </form>
 
         <div className="divider" />
 
         <p className="text-center text-pw-muted text-sm">
-          Wala pang account?{' '}
+          {t('auth.noAccount')}{' '}
           <Link to="/register" className="text-pw-gold font-semibold hover:underline">
-            Mag-sign up
+            {t('auth.signUp')}
           </Link>
         </p>
       </motion.div>
@@ -233,7 +235,7 @@ export default function Login() {
         transition={{ delay: 0.5 }}
         className="text-pw-muted text-xs mt-6 text-center max-w-xs leading-relaxed"
       >
-        &ldquo;Ang malaking ipon ay nagsisimula sa maliit na hakbang.&rdquo; 🇵🇭
+        {t('auth.tagline')}
       </motion.p>
     </div>
   );
