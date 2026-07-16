@@ -5,15 +5,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
 import { shallow } from 'zustand/shallow';
+import { useTranslation } from '../i18n/useTranslation';
 import LoadingScreen from '../components/common/LoadingScreen';
 import RecurringBills from '../components/transactions/RecurringBills';
 import { maybeSnapshotNetWorth } from '../utils/netWorth';
-import { WIDGETS, getWidgetVisibility, setWidgetVisibility } from '../utils/dashboardWidgets';
+import { WIDGET_IDS, getWidgetVisibility, setWidgetVisibility } from '../utils/dashboardWidgets';
 import {
   getTransactions, getSavingsGoals, getDebts, getInsights,
 } from '../services/firebase';
 import { formatPeso, formatPesoCompact, calculateHealthScore, getHealthScoreInfo, formatDate } from '../utils/formatters';
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants';
+import { getCategoryInfo } from '../utils/constants';
 import {
   HiArrowTrendingUp, HiArrowTrendingDown, HiBanknotes,
   HiShieldCheck, HiSparkles, HiCreditCard, HiChevronRight,
@@ -36,6 +37,7 @@ const item = {
 
 export default function Dashboard() {
   const { user, profile } = useAuth();
+  const { t, language } = useTranslation();
   const {
     transactions, setTransactions, transactionsLoaded,
     savings, setSavings, savingsLoaded,
@@ -122,16 +124,11 @@ export default function Dashboard() {
   const recentTxs = useMemo(() => transactions.slice(0, 5), [transactions]);
   const balance   = stats.income - stats.expenses;
 
-  const getCatLabel = (id, type) => {
-    const cats = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
-    return cats.find(c => c.id === id) || { id, label: id, color: '#6B7280' };
-  };
+  const firstName = profile?.displayName?.split(' ')[0] || t('dashboard.defaultName');
+  const greeting  = now.getHours() < 12 ? t('dashboard.goodMorning') : now.getHours() < 17 ? t('dashboard.goodAfternoon') : t('dashboard.goodEvening');
+  const monthLabel = now.toLocaleDateString(language === 'en' ? 'en-US' : 'en-PH', { month: 'long', year: 'numeric' });
 
-  const firstName = profile?.displayName?.split(' ')[0] || 'Kaibigan';
-  const greeting  = now.getHours() < 12 ? 'Magandang umaga' : now.getHours() < 17 ? 'Magandang hapon' : 'Magandang gabi';
-  const monthLabel = now.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' });
-
-  if (loading) return <LoadingScreen message="Kinukuha ang iyong datos…" />;
+  if (loading) return <LoadingScreen message={t('dashboard.loadingData')} />;
 
   return (
     <div className="page">
@@ -148,7 +145,7 @@ export default function Dashboard() {
               <button onClick={() => setShowCustomize(true)}
                 className="w-9 h-9 rounded-full flex items-center justify-center text-pw-muted hover:text-white transition-colors"
                 style={{ background: 'rgba(255,255,255,0.05)' }}
-                aria-label="I-customize ang Dashboard">
+                aria-label={t('dashboard.customize')}>
                 <HiCog6Tooth className="w-4 h-4" />
               </button>
               <Link to="/profile">
@@ -198,12 +195,12 @@ export default function Dashboard() {
                 {/* Month label */}
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-blue-200/60 text-[11px] font-medium uppercase tracking-[0.12em]">{monthLabel}</p>
-                  <span className="label-blue text-[10px] py-0.5">Balance</span>
+                  <span className="label-blue text-[10px] py-0.5">{t('dashboard.balanceLabel')}</span>
                 </div>
 
                 {/* Main balance */}
                 <div className="mb-5">
-                  <p className="text-white/50 text-xs font-medium mb-1">Natitirang Balanse</p>
+                  <p className="text-white/50 text-xs font-medium mb-1">{t('dashboard.remainingBalance')}</p>
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-white/50 text-2xl font-display">₱</span>
                     <span className="text-white text-5xl font-display leading-none peso-amount">
@@ -219,7 +216,7 @@ export default function Dashboard() {
                       <HiArrowTrendingUp className="w-3.5 h-3.5 text-pw-emerald" />
                     </div>
                     <div>
-                      <p className="text-white/40 text-[10px] font-medium uppercase tracking-wider mb-0.5">Kita</p>
+                      <p className="text-white/40 text-[10px] font-medium uppercase tracking-wider mb-0.5">{t('dashboard.income')}</p>
                       <p className="text-pw-emerald font-mono font-semibold text-sm peso-amount">{formatPesoCompact(stats.income)}</p>
                     </div>
                   </div>
@@ -229,7 +226,7 @@ export default function Dashboard() {
                       <HiArrowTrendingDown className="w-3.5 h-3.5 text-pw-rose" />
                     </div>
                     <div>
-                      <p className="text-white/40 text-[10px] font-medium uppercase tracking-wider mb-0.5">Gastos</p>
+                      <p className="text-white/40 text-[10px] font-medium uppercase tracking-wider mb-0.5">{t('dashboard.expense')}</p>
                       <p className="text-pw-rose font-mono font-semibold text-sm peso-amount">{formatPesoCompact(stats.expenses)}</p>
                     </div>
                   </div>
@@ -242,7 +239,7 @@ export default function Dashboard() {
           {widgets.chart && chartData.some(d => d.income > 0 || d.expense > 0) && (
             <motion.div variants={item}>
               <div className="glass p-4">
-                <p className="section-title mb-3">7-Araw na Gastos</p>
+                <p className="section-title mb-3">{t('dashboard.sevenDayExpenses')}</p>
                 <ResponsiveContainer width="100%" height={72}>
                   <AreaChart data={chartData}>
                     <defs>
@@ -264,7 +261,7 @@ export default function Dashboard() {
                         fontFamily: 'Inter, sans-serif',
                       }}
                       labelStyle={{ color: 'rgba(255,255,255,0.5)', marginBottom: '4px', fontSize: '11px' }}
-                      formatter={(v, n) => [formatPeso(v), n === 'expense' ? 'Gastos' : 'Kita']}
+                      formatter={(v, n) => [formatPeso(v), n === 'expense' ? t('dashboard.expense') : t('dashboard.income')]}
                     />
                     <Area type="monotone" dataKey="income"  stroke="#10B981" fill="url(#incGrad)" strokeWidth={1.5} dot={false} />
                     <Area type="monotone" dataKey="expense" stroke="#F43F5E" fill="url(#expGrad)" strokeWidth={1.5} dot={false} />
@@ -293,7 +290,7 @@ export default function Dashboard() {
                   />
                 </div>
                 <div className="text-center">
-                  <p className="text-[11px] text-pw-muted font-medium uppercase tracking-wide">Financial Health</p>
+                  <p className="text-[11px] text-pw-muted font-medium uppercase tracking-wide">{t('dashboard.financialHealth')}</p>
                   <p className="text-xs font-semibold mt-0.5" style={{ color: scoreInfo.color }}>{scoreInfo.label}</p>
                 </div>
               </motion.div>
@@ -305,9 +302,9 @@ export default function Dashboard() {
                   <HiBanknotes className="w-4.5 h-4.5 text-pw-emerald" style={{ width: 18, height: 18 }} />
                 </div>
                 <div className="mt-3">
-                  <p className="section-title mb-1">Kabuuang Ipon</p>
+                  <p className="section-title mb-1">{t('dashboard.totalSavings')}</p>
                   <p className="text-white font-semibold text-lg peso-amount">{formatPesoCompact(totalSavings)}</p>
-                  <p className="text-pw-muted text-xs mt-0.5">{savings.length} {savings.length === 1 ? 'goal' : 'goals'}</p>
+                  <p className="text-pw-muted text-xs mt-0.5">{savings.length} {savings.length === 1 ? t('dashboard.goal') : t('dashboard.goals')}</p>
                 </div>
               </motion.div>
             </Link>
@@ -317,13 +314,13 @@ export default function Dashboard() {
           {/* ── Quick Actions ── */}
           {widgets.quickActions && (
           <motion.div variants={item}>
-            <p className="section-title">Mabilis na Aksyon</p>
+            <p className="section-title">{t('dashboard.quickActions')}</p>
             <div className="grid grid-cols-2 gap-2.5">
               {[
-                { to: '/transactions?tab=expense', icon: HiArrowTrendingDown, label: 'Idagdag Gastos',     color: '#F43F5E', bg: 'rgba(244,63,94,0.10)',  border: 'rgba(244,63,94,0.16)' },
-                { to: '/transactions?tab=income',  icon: HiArrowTrendingUp,   label: 'Idagdag Kita',      color: '#10B981', bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.16)' },
-                { to: '/budget',                   icon: HiSparkles,          label: 'AI Budget',         color: '#F5B731', bg: 'rgba(245,183,49,0.10)', border: 'rgba(245,183,49,0.16)' },
-                { to: '/debts',                    icon: HiShieldCheck,       label: 'Pamamahala ng Utang', color: '#3B82F6', bg: 'rgba(59,130,246,0.10)', border: 'rgba(59,130,246,0.16)' },
+                { to: '/transactions?tab=expense', icon: HiArrowTrendingDown, label: t('dashboard.addExpense'),     color: '#F43F5E', bg: 'rgba(244,63,94,0.10)',  border: 'rgba(244,63,94,0.16)' },
+                { to: '/transactions?tab=income',  icon: HiArrowTrendingUp,   label: t('dashboard.addIncome'),      color: '#10B981', bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.16)' },
+                { to: '/budget',                   icon: HiSparkles,          label: t('nav.budget'),         color: '#F5B731', bg: 'rgba(245,183,49,0.10)', border: 'rgba(245,183,49,0.16)' },
+                { to: '/debts',                    icon: HiShieldCheck,       label: t('dashboard.debtManagement'), color: '#3B82F6', bg: 'rgba(59,130,246,0.10)', border: 'rgba(59,130,246,0.16)' },
               ].map(({ to, icon: Icon, label, color, bg, border }) => (
                 <Link key={to} to={to}>
                   <motion.div
@@ -352,7 +349,7 @@ export default function Dashboard() {
                       <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: 'rgba(245,183,49,0.2)' }}>
                         <HiSparkles className="w-3 h-3 text-pw-gold" />
                       </div>
-                      <p className="text-xs font-semibold text-pw-gold uppercase tracking-wider">AI Insight</p>
+                      <p className="text-xs font-semibold text-pw-gold uppercase tracking-wider">{t('dashboard.aiInsight')}</p>
                     </div>
                     <HiChevronRight className="w-4 h-4 text-pw-gold/50" />
                   </div>
@@ -368,8 +365,8 @@ export default function Dashboard() {
           {widgets.recentTransactions && (
           <motion.div variants={item}>
             <div className="flex items-center justify-between mb-3">
-              <p className="section-title mb-0">Mga Kamakailang Transaksyon</p>
-              <Link to="/transactions" className="text-xs text-pw-blue-light hover:underline font-medium">Lahat →</Link>
+              <p className="section-title mb-0">{t('dashboard.recentTransactions')}</p>
+              <Link to="/transactions" className="text-xs text-pw-blue-light hover:underline font-medium">{t('dashboard.viewAll')}</Link>
             </div>
 
             {recentTxs.length === 0 ? (
@@ -377,13 +374,13 @@ export default function Dashboard() {
                 <div className="icon-box mx-auto mb-3" style={{ background: 'rgba(255,255,255,0.05)', width: 48, height: 48, borderRadius: 16 }}>
                   <HiArrowsRightLeft className="w-5 h-5 text-pw-muted" style={{ width: 20, height: 20 }} />
                 </div>
-                <p className="text-white/70 font-medium text-sm mb-1">Walang transaksyon pa</p>
-                <Link to="/transactions" className="text-pw-gold text-xs hover:underline">Mag-dagdag ngayon →</Link>
+                <p className="text-white/70 font-medium text-sm mb-1">{t('dashboard.noTransactions')}</p>
+                <Link to="/transactions" className="text-pw-gold text-xs hover:underline">{t('dashboard.addNow')}</Link>
               </div>
             ) : (
               <div className="glass overflow-hidden">
                 {recentTxs.map((tx, i) => {
-                  const cat = getCatLabel(tx.category, tx.type);
+                  const cat = getCategoryInfo(tx.category, tx.type);
                   return (
                     <div key={tx.id}
                       className={`flex items-center gap-3 px-4 py-3.5 ${i < recentTxs.length - 1 ? 'border-b border-white/[0.045]' : ''}`}>
@@ -412,9 +409,9 @@ export default function Dashboard() {
           {widgets.quickLinks && (
           <motion.div variants={item} className="grid grid-cols-3 gap-2.5 pb-4">
             {[
-              { to: '/cards',    icon: HiCreditCard,  label: 'Mga Card' },
-              { to: '/lessons',  icon: HiAcademicCap, label: 'Aralin' },
-              { to: '/insights', icon: HiChartBar,    label: 'AI Insights' },
+              { to: '/cards',    icon: HiCreditCard,  label: t('dashboard.cards') },
+              { to: '/lessons',  icon: HiAcademicCap, label: t('dashboard.lessons') },
+              { to: '/insights', icon: HiChartBar,    label: t('dashboard.insights') },
             ].map(({ to, icon: Icon, label }) => (
               <Link key={to} to={to}>
                 <motion.div
@@ -445,25 +442,25 @@ export default function Dashboard() {
               style={{ background: 'rgba(12,22,40,0.98)', backdropFilter: 'blur(28px)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-5" />
               <div className="flex items-center justify-between mb-1">
-                <h2 className="font-display text-xl font-bold text-white">I-customize ang Dashboard</h2>
+                <h2 className="font-display text-xl font-bold text-white">{t('dashboard.customize')}</h2>
                 <button onClick={() => setShowCustomize(false)}
                   className="w-8 h-8 rounded-full flex items-center justify-center text-pw-muted hover:text-white"
                   style={{ background: 'rgba(255,255,255,0.05)' }}>
                   <HiXMark className="w-4 h-4" />
                 </button>
               </div>
-              <p className="text-pw-muted text-sm mb-5">Piliin kung anong mga widget ang ipapakita.</p>
+              <p className="text-pw-muted text-sm mb-5">{t('dashboard.customizeDesc')}</p>
 
               <div className="space-y-2 pb-4">
-                {WIDGETS.map(w => (
-                  <button key={w.id} onClick={() => toggleWidget(w.id)}
+                {WIDGET_IDS.map(id => (
+                  <button key={id} onClick={() => toggleWidget(id)}
                     className="w-full flex items-center justify-between glass-sm p-3.5 cursor-pointer">
-                    <span className="text-white text-sm">{w.label}</span>
+                    <span className="text-white text-sm">{t(`dashboard.widgets.${id}`)}</span>
                     <div className={`w-10 h-6 rounded-full relative transition-colors flex-shrink-0 ${
-                      widgets[w.id] ? 'bg-pw-gold' : 'bg-white/10'
+                      widgets[id] ? 'bg-pw-gold' : 'bg-white/10'
                     }`}>
                       <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-                        widgets[w.id] ? 'translate-x-[18px]' : 'translate-x-0.5'
+                        widgets[id] ? 'translate-x-[18px]' : 'translate-x-0.5'
                       }`} />
                     </div>
                   </button>

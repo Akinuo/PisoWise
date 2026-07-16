@@ -2,6 +2,17 @@
 // Small date-math helpers for recurring transactions (bills/income that
 // repeat on a schedule). Kept separate from formatters.js since this is a
 // distinct, self-contained concern.
+//
+// Language-aware the same way getCategoryInfo() is (see constants.js) —
+// reads the current language directly from the store since these are plain
+// functions, not hooks.
+import useStore from '../store/useStore';
+import { TRANSLATIONS } from '../i18n/translations';
+
+const getDict = () => {
+  const language = useStore.getState().language;
+  return TRANSLATIONS[language]?.recurring || TRANSLATIONS.fil.recurring;
+};
 
 /**
  * Given a 'YYYY-MM-DD' due date and a frequency, return the next due date
@@ -28,19 +39,20 @@ export const getDueStatus = (dueDateStr) => {
   return 'upcoming';
 };
 
-/** Human-readable Filipino label for a due date's status. */
+/** Human-readable label for a due date's status, in the current language. */
 export const getDueLabel = (dueDateStr) => {
+  const dict = getDict();
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const due   = new Date(dueDateStr + 'T00:00:00');
   const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24));
-  if (diffDays < 0)  return `${Math.abs(diffDays)} araw na overdue`;
-  if (diffDays === 0) return 'Due ngayon';
-  if (diffDays === 1) return 'Due bukas';
-  return `Due sa ${diffDays} araw`;
+  if (diffDays < 0)  return dict.overdueDays.replace('{days}', Math.abs(diffDays));
+  if (diffDays === 0) return dict.dueToday;
+  if (diffDays === 1) return dict.dueTomorrow;
+  return dict.dueInDays.replace('{days}', diffDays);
 };
 
-export const FREQUENCY_LABELS = {
-  weekly:  'Lingguhan',
-  monthly: 'Buwanan',
-  yearly:  'Taunan',
+/** Human-readable frequency label ('weekly'/'monthly'/'yearly') in the current language. */
+export const getFrequencyLabel = (frequency) => {
+  const dict = getDict();
+  return dict[frequency] || frequency;
 };

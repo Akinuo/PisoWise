@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
 import { shallow } from 'zustand/shallow';
+import { useTranslation } from '../i18n/useTranslation';
 import { addTransaction, deleteTransaction, getTransactions, getBudget } from '../services/firebase';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getCategoryInfo, getCategoryLabel } from '../utils/constants';
 import CategoryIcon from '../components/common/CategoryIcon';
@@ -24,11 +25,15 @@ import {
   HiArrowDownTray, HiCamera, HiMicrophone, HiSparkles, HiDocumentText,
 } from 'react-icons/hi2';
 
-const TABS    = ['Lahat', 'Kita', 'Gastos'];
-const FILTERS = ['Lahat', 'Ngayon', 'Linggong Ito', 'Buwang Ito'];
+// Internal ids stay fixed regardless of language — only the displayed label
+// is translated. Keeps state comparisons (e.g. activeTab === 'Kita')
+// stable no matter which language is active.
+const TABS    = [{ id: 'Lahat', key: 'tabAll' }, { id: 'Kita', key: 'tabIncome' }, { id: 'Gastos', key: 'tabExpense' }];
+const FILTERS = [{ id: 'Lahat', key: 'filterAll' }, { id: 'Ngayon', key: 'filterToday' }, { id: 'Linggong Ito', key: 'filterWeek' }, { id: 'Buwang Ito', key: 'filterMonth' }];
 
 export default function Transactions() {
   const { user }  = useAuth();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') === 'income' ? 'Kita'
                    : searchParams.get('tab') === 'expense' ? 'Gastos' : 'Lahat';
@@ -99,19 +104,20 @@ export default function Transactions() {
   const handleExport = () => {
     if (displayed.length === 0) return;
     exportTransactionsToCsv(displayed, (id, type) => getCategoryInfo(id, type).label);
-    toast.success('Na-export ang CSV!');
+    toast.success(t('transactions.csvExported'));
   };
 
   const handlePdfExport = async () => {
     if (displayed.length === 0) return;
-    const label = activeFilter === 'Lahat' ? 'Lahat ng Transaksyon' : activeFilter;
+    const filterLabel = FILTERS.find(f => f.id === activeFilter);
+    const label = activeFilter === 'Lahat' ? t('transactions.allTransactions') : t(`transactions.${filterLabel.key}`);
     const { generateMonthlyReportPdf } = await import('../utils/pdfExport');
     generateMonthlyReportPdf({
       monthLabel: label,
       transactions: displayed,
       getCatLabel: getCategoryLabel,
     });
-    toast.success('Na-export ang PDF!');
+    toast.success(t('transactions.pdfExported'));
   };
 
   const handleVoiceResult = (parsed) => {
@@ -120,7 +126,7 @@ export default function Transactions() {
     setValue('category', parsed.category);
     setValue('description', parsed.description || '');
     setShowVoicePanel(false);
-    toast.success('Napunan ang form mula sa boses!');
+    toast.success(t('transactions.voiceFilled'));
   };
 
   const handleScanReceipt = async () => {
@@ -132,9 +138,9 @@ export default function Transactions() {
       if (result.amount > 0) setValue('amount', String(result.amount));
       if (result.description) setValue('description', result.description);
       if (result.category) setValue('category', result.category);
-      toast.success('Nabasa ang resibo! I-check muna bago i-save.');
+      toast.success(t('transactions.receiptRead'));
     } catch (err) {
-      toast.error(err.message || 'Hindi nabasa ang resibo. Subukan ulit o i-type na lang.');
+      toast.error(err.message || t('transactions.receiptReadFailed'));
     } finally {
       setScanningReceipt(false);
     }
@@ -148,7 +154,7 @@ export default function Transactions() {
       const base64 = await compressImageToBase64(file);
       setReceiptPreview(base64);
     } catch (err) {
-      toast.error(err.message || 'Hindi ma-process ang larawan.');
+      toast.error(err.message || t('transactions.imageProcessFailed'));
     } finally {
       setCompressing(false);
       e.target.value = ''; // allow selecting the same file again later
@@ -160,7 +166,7 @@ export default function Transactions() {
     setSubmitting(true);
     try {
       const amount = parsePesoInput(data.amount);
-      if (amount <= 0) { toast.error('Maglagay ng tamang halaga.'); setSubmitting(false); return; }
+      if (amount <= 0) { toast.error(t('transactions.amountInvalid')); setSubmitting(false); return; }
       const tx = {
         type:        txType,
         amount,
@@ -172,7 +178,7 @@ export default function Transactions() {
       };
       const ref = await addTransaction(user.uid, tx);
       addTransactionLocal({ id: ref.id, userId: user.uid, ...tx, createdAt: Timestamp.now() });
-      toast.success(txType === 'income' ? 'Kita naidagdag!' : 'Gastos naitala!');
+      toast.success(txType === 'income' ? t('transactions.incomeAdded') : t('transactions.expenseAdded'));
 
       // Budget category alert — only meaningful for expenses landing in the
       // current month, and only if a budget with categoryLimits was saved.
@@ -191,9 +197,9 @@ export default function Transactions() {
           if (alert) {
             const label = getCategoryInfo(data.category, 'expense').label;
             if (alert.level === 'over') {
-              toast(`⚠️ Nalagpasan mo na ang budget mo sa ${label} ngayong buwan (${alert.percent}%).`, { duration: 5000 });
+              toast(t('transactions.budgetOver', { category: label, percent: alert.percent }), { duration: 5000 });
             } else {
-              toast(`👀 Malapit ka nang maubos ang budget mo sa ${label} (${alert.percent}%).`, { duration: 4000 });
+              toast(t('transactions.budgetNear', { category: label, percent: alert.percent }), { duration: 4000 });
             }
           }
         }
@@ -203,19 +209,19 @@ export default function Transactions() {
       setReceiptPreview(null);
       setShowModal(false);
     } catch {
-      toast.error('Hindi nai-save. Subukan ulit.');
+      toast.error(t('transactions.saveFailed'));
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Tanggalin ang transaksyon na ito?')) return;
+    if (!confirm(t('transactions.confirmDelete'))) return;
     try {
       await deleteTransaction(id);
       removeTransactionLocal(id);
-      toast.success('Natanggal na.');
-    } catch { toast.error('Hindi natanggal. Subukan ulit.'); }
+      toast.success(t('transactions.deleted'));
+    } catch { toast.error(t('transactions.deleteFailed')); }
   };
 
   /* ── open modal and reset category ── */
@@ -240,23 +246,23 @@ export default function Transactions() {
 
           {/* Header */}
           <div className="flex items-center justify-between pt-2">
-            <h1 className="font-display text-3xl text-white">Transaksyon</h1>
+            <h1 className="font-display text-3xl text-white">{t('transactions.title')}</h1>
             <div className="flex gap-2">
               <motion.button whileTap={{ scale: 0.9 }} onClick={handleExport}
                 disabled={displayed.length === 0}
                 className="btn-secondary py-2 px-3 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-                aria-label="I-export bilang CSV">
+                aria-label={t('transactions.exportCsv')}>
                 <HiArrowDownTray className="w-4 h-4" />
               </motion.button>
               <motion.button whileTap={{ scale: 0.9 }} onClick={handlePdfExport}
                 disabled={displayed.length === 0}
                 className="btn-secondary py-2 px-3 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-                aria-label="I-export bilang PDF">
+                aria-label={t('transactions.exportPdf')}>
                 <HiDocumentText className="w-4 h-4" />
               </motion.button>
               <motion.button whileTap={{ scale: 0.9 }} onClick={() => openModal('expense')} className="btn-primary py-2 px-3.5 text-sm">
                 <HiPlus className="w-4 h-4" />
-                <span className="hidden sm:inline">Dagdag</span>
+                <span className="hidden sm:inline">{t('common.add')}</span>
               </motion.button>
             </div>
           </div>
@@ -268,14 +274,14 @@ export default function Transactions() {
               <div className="icon-box-sm" style={{ background: 'rgba(244,63,94,0.12)' }}>
                 <HiArrowTrendingDown className="w-4 h-4 text-pw-rose" style={{ width: 16, height: 16 }} />
               </div>
-              <span className="text-white text-sm font-medium">Idagdag Gastos</span>
+              <span className="text-white text-sm font-medium">{t('transactions.addExpense')}</span>
             </motion.button>
             <motion.button whileTap={{ scale: 0.97 }} onClick={() => openModal('income')}
               className="flex items-center gap-3 p-3.5 rounded-2xl border border-pw-emerald/20 bg-pw-emerald-dim hover:border-pw-emerald/35 transition-all cursor-pointer">
               <div className="icon-box-sm" style={{ background: 'rgba(16,185,129,0.12)' }}>
                 <HiArrowTrendingUp className="w-4 h-4 text-pw-emerald" style={{ width: 16, height: 16 }} />
               </div>
-              <span className="text-white text-sm font-medium">Idagdag Kita</span>
+              <span className="text-white text-sm font-medium">{t('transactions.addIncome')}</span>
             </motion.button>
           </div>
 
@@ -285,11 +291,11 @@ export default function Transactions() {
           {/* Tabs */}
           <div className="glass-sm p-1 flex gap-1">
             {TABS.map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)}
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                  activeTab === tab ? 'bg-pw-gold text-pw-navy' : 'text-pw-muted hover:text-white'
+                  activeTab === tab.id ? 'bg-pw-gold text-pw-navy' : 'text-pw-muted hover:text-white'
                 }`}>
-                {tab}
+                {t(`transactions.${tab.key}`)}
               </button>
             ))}
           </div>
@@ -298,7 +304,7 @@ export default function Transactions() {
           <div className="relative">
             <HiMagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-pw-muted" />
             <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Maghanap ng transaksyon..." className="input-glass pl-10 text-sm" />
+              placeholder={t('transactions.searchPlaceholder')} className="input-glass pl-10 text-sm" />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')}
                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-pw-muted hover:text-white">
@@ -310,13 +316,13 @@ export default function Transactions() {
           {/* Filters */}
           <div className="flex gap-2 overflow-x-auto scroll-hidden pb-1">
             {FILTERS.map(f => (
-              <button key={f} onClick={() => setActiveFilter(f)}
+              <button key={f.id} onClick={() => setActiveFilter(f.id)}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
-                  activeFilter === f
+                  activeFilter === f.id
                     ? 'bg-pw-blue-dim border-pw-blue/30 text-pw-blue-light'
                     : 'border-white/10 text-pw-muted hover:text-white'
                 }`}>
-                {f}
+                {t(`transactions.${f.key}`)}
               </button>
             ))}
           </div>
@@ -327,8 +333,8 @@ export default function Transactions() {
               <div className="icon-box mx-auto mb-3" style={{ background: 'rgba(255,255,255,0.04)', width: 48, height: 48, borderRadius: 16 }}>
                 <HiArrowsRightLeft className="w-5 h-5 text-pw-muted" style={{ width: 20, height: 20 }} />
               </div>
-              <p className="text-white font-semibold mb-1">Walang nakitang transaksyon</p>
-              <p className="text-pw-muted text-sm">Mag-tap ng &ldquo;Dagdag&rdquo; para magsimula.</p>
+              <p className="text-white font-semibold mb-1">{t('transactions.noResultsTitle')}</p>
+              <p className="text-pw-muted text-sm">{t('transactions.noResultsBody')}</p>
             </div>
           ) : (
             <div className="glass overflow-hidden">
@@ -349,8 +355,8 @@ export default function Transactions() {
                         {tx.receiptImage && (
                           <button onClick={() => setViewingReceipt(tx.receiptImage)}
                             className="w-7 h-7 rounded-lg overflow-hidden border border-white/10 flex-shrink-0 cursor-pointer"
-                            aria-label="Tingnan ang resibo">
-                            <img src={tx.receiptImage} alt="Resibo" className="w-full h-full object-cover" />
+                            aria-label={t('transactions.viewReceipt')}>
+                            <img src={tx.receiptImage} alt={t('transactions.receipt')} className="w-full h-full object-cover" />
                           </button>
                         )}
                         <p className={`font-semibold text-sm peso-amount font-mono ${tx.type === 'income' ? 'text-pw-emerald' : 'text-pw-rose'}`}>
@@ -398,7 +404,7 @@ export default function Transactions() {
                         showVoicePanel ? 'bg-pw-gold text-pw-navy' : 'text-pw-muted hover:text-white'
                       }`}
                       style={showVoicePanel ? {} : { background: 'rgba(255,255,255,0.05)' }}
-                      aria-label="Gamitin ang boses">
+                      aria-label={t('transactions.useVoice')}>
                       <HiMicrophone className="w-4 h-4" />
                     </button>
                     <button onClick={closeModal}
@@ -424,8 +430,8 @@ export default function Transactions() {
                 {/* Type toggle */}
                 <div className="flex gap-2 mb-5">
                   {[
-                    { type: 'expense', icon: HiArrowTrendingDown, label: 'Gastos', color: 'pw-rose', bg: 'rgba(244,63,94,0.12)', activeBorder: 'rgba(244,63,94,0.28)' },
-                    { type: 'income',  icon: HiArrowTrendingUp,   label: 'Kita',   color: 'pw-emerald', bg: 'rgba(16,185,129,0.12)', activeBorder: 'rgba(16,185,129,0.28)' },
+                    { type: 'expense', icon: HiArrowTrendingDown, label: t('common.expense'), color: 'pw-rose', bg: 'rgba(244,63,94,0.12)', activeBorder: 'rgba(244,63,94,0.28)' },
+                    { type: 'income',  icon: HiArrowTrendingUp,   label: t('common.income'),   color: 'pw-emerald', bg: 'rgba(16,185,129,0.12)', activeBorder: 'rgba(16,185,129,0.28)' },
                   ].map(({ type, icon: Icon, label, bg, activeBorder }) => (
                     <button key={type} type="button" onClick={() => { setTxType(type); setValue('category', ''); }}
                       className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm transition-all cursor-pointer"
@@ -444,26 +450,27 @@ export default function Transactions() {
 
                   {/* Amount */}
                   <div>
-                    <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">Halaga</label>
+                    <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">{t('common.amount')}</label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-pw-gold font-bold text-xl peso-amount">₱</span>
                       <input type="number" placeholder="0.00" step="0.01" min="0" inputMode="decimal"
                         className="input-glass pl-9 text-2xl font-bold peso-amount"
-                        {...register('amount', { required: 'Maglagay ng halaga', min: { value: 0.01, message: 'Dapat mas malaki sa 0' } })} />
+                        {...register('amount', { required: t('transactions.amountRequired'), min: { value: 0.01, message: t('transactions.amountPositive') } })} />
                     </div>
                     {errors.amount && <p className="text-pw-rose text-xs mt-1.5 font-medium">{errors.amount.message}</p>}
                   </div>
 
                   {/* Category — SVG icon grid, no emojis, all clickable */}
                   <div>
-                    <label className="block text-xs text-pw-muted mb-2 font-semibold uppercase tracking-wide">Kategorya</label>
+                    <label className="block text-xs text-pw-muted mb-2 font-semibold uppercase tracking-wide">{t('common.category')}</label>
                     <div className="grid grid-cols-4 gap-2">
                       {categories.map(cat => {
                         const isSelected = selectedCat === cat.id;
+                        const catInfo = getCategoryInfo(cat.id, txType);
                         return (
                           <label key={cat.id} className="cursor-pointer">
                             <input type="radio" value={cat.id} className="sr-only"
-                              {...register('category', { required: 'Pumili ng kategorya' })} />
+                              {...register('category', { required: t('transactions.categoryRequired') })} />
                             <div className={`flex flex-col items-center gap-1.5 p-2.5 rounded-2xl border transition-all ${
                               isSelected
                                 ? 'border-pw-gold/45 bg-pw-gold-dim'
@@ -473,7 +480,7 @@ export default function Transactions() {
                                 <CategoryIcon id={cat.id} size={18} color={isSelected ? '#F5B731' : cat.color} />
                               </div>
                               <span className={`text-[9px] font-semibold text-center leading-tight ${isSelected ? 'text-pw-gold' : 'text-pw-muted'}`}>
-                                {cat.label}
+                                {catInfo.label}
                               </span>
                             </div>
                           </label>
@@ -485,24 +492,24 @@ export default function Transactions() {
 
                   {/* Description */}
                   <div>
-                    <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">Paglalarawan <span className="normal-case text-pw-muted/60">(opsyonal)</span></label>
+                    <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">{t('transactions.descriptionOptional')} <span className="normal-case text-pw-muted/60">({t('common.optional')})</span></label>
                     <input type="text"
-                      placeholder={txType === 'expense' ? 'hal. Tanghalian sa Jollibee' : 'hal. Sweldo — Mayo'}
+                      placeholder={txType === 'expense' ? t('transactions.descriptionPlaceholderExpense') : t('transactions.descriptionPlaceholderIncome')}
                       className="input-glass" {...register('description')} />
                   </div>
 
                   {/* Date */}
                   <div>
-                    <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">Petsa</label>
+                    <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">{t('common.date')}</label>
                     <input type="date" className="input-glass"
                       max={new Date().toISOString().slice(0, 10)}
-                      {...register('date', { required: 'Pumili ng petsa' })} />
+                      {...register('date', { required: t('transactions.dateRequired') })} />
                   </div>
 
                   {/* Receipt photo (optional) */}
                   <div>
                     <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">
-                      Resibo <span className="normal-case text-pw-muted/60">(opsyonal)</span>
+                      {t('transactions.receipt')} <span className="normal-case text-pw-muted/60">({t('common.optional')})</span>
                     </label>
                     {receiptPreview ? (
                       <div className="flex items-center gap-3">
@@ -518,7 +525,7 @@ export default function Transactions() {
                           {scanningReceipt
                             ? <span className="w-3.5 h-3.5 rounded-full border-2 border-pw-muted border-t-transparent animate-spin" />
                             : <HiSparkles className="w-3.5 h-3.5 text-pw-gold" />}
-                          {scanningReceipt ? 'Binabasa...' : 'Basahin ng AI'}
+                          {scanningReceipt ? t('transactions.scanning') : t('transactions.scanWithAi')}
                         </button>
                       </div>
                     ) : (
@@ -528,7 +535,7 @@ export default function Transactions() {
                         ) : (
                           <HiCamera className="w-4 h-4" />
                         )}
-                        {compressing ? 'Nagpo-proseso...' : 'Kumuha o mag-upload ng larawan'}
+                        {compressing ? t('transactions.processing') : t('transactions.uploadPhoto')}
                         <input type="file" accept="image/*" capture="environment" className="hidden"
                           onChange={handleReceiptSelect} disabled={compressing} />
                       </label>
@@ -539,9 +546,9 @@ export default function Transactions() {
                     {submitting ? (
                       <span className="flex items-center justify-center gap-2">
                         <span className="w-4 h-4 rounded-full border-2 border-pw-navy border-t-transparent animate-spin" />
-                        Nag-sa-save…
+                        {t('transactions.saving')}
                       </span>
-                    ) : `I-save ang ${txType === 'income' ? 'Kita' : 'Gastos'}`}
+                    ) : (txType === 'income' ? t('transactions.saveIncome') : t('transactions.saveExpense'))}
                   </button>
                 </form>
               </div>
@@ -560,7 +567,7 @@ export default function Transactions() {
               className="absolute top-5 right-5 w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white">
               <HiXMark className="w-5 h-5" />
             </button>
-            <img src={viewingReceipt} alt="Resibo" className="max-w-full max-h-full rounded-2xl" onClick={e => e.stopPropagation()} />
+            <img src={viewingReceipt} alt={t('transactions.receipt')} className="max-w-full max-h-full rounded-2xl" onClick={e => e.stopPropagation()} />
           </motion.div>
         )}
       </AnimatePresence>

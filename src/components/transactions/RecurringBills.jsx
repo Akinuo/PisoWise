@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
 import useStore from '../../store/useStore';
 import { shallow } from 'zustand/shallow';
+import { useTranslation } from '../../i18n/useTranslation';
 import {
   addTransaction, addRecurringTransaction, getRecurringTransactions,
   updateRecurringTransaction, deleteRecurringTransaction, Timestamp,
@@ -12,7 +13,7 @@ import {
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getCategoryInfo } from '../../utils/constants';
 import CategoryIcon from '../common/CategoryIcon';
 import { formatPeso, parsePesoInput } from '../../utils/formatters';
-import { advanceDueDate, getDueStatus, getDueLabel, FREQUENCY_LABELS } from '../../utils/recurring';
+import { advanceDueDate, getDueStatus, getDueLabel, getFrequencyLabel } from '../../utils/recurring';
 import toast from 'react-hot-toast';
 import {
   HiArrowPath, HiPlus, HiXMark, HiTrash, HiCheckCircle, HiBellAlert,
@@ -20,6 +21,7 @@ import {
 
 export default function RecurringBills() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const {
     recurringTransactions, setRecurringTransactions, recurringTransactionsLoaded,
     addRecurringLocal, updateRecurringLocal, removeRecurringLocal, addTransactionLocal,
@@ -59,7 +61,7 @@ export default function RecurringBills() {
   const onAddSubmit = async (data) => {
     if (!user) return;
     const amount = parsePesoInput(data.amount);
-    if (amount <= 0) { toast.error('Maglagay ng tamang halaga.'); return; }
+    if (amount <= 0) { toast.error(t('recurring.amountInvalid')); return; }
     try {
       const payload = {
         type: txType,
@@ -71,21 +73,21 @@ export default function RecurringBills() {
       };
       const ref = await addRecurringTransaction(user.uid, payload);
       addRecurringLocal({ id: ref.id, userId: user.uid, ...payload, active: true, createdAt: Timestamp.now() });
-      toast.success('Naidagdag ang paulit-ulit na bayarin!');
+      toast.success(t('recurring.added'));
       reset({ frequency: 'monthly', nextDueDate: new Date().toISOString().slice(0, 10) });
       setShowAddForm(false);
     } catch {
-      toast.error('Hindi na-save. Subukan ulit.');
+      toast.error(t('recurring.saveFailed'));
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Tanggalin ang paulit-ulit na bayaring ito?')) return;
+    if (!confirm(t('recurring.confirmDelete'))) return;
     try {
       await deleteRecurringTransaction(id);
       removeRecurringLocal(id);
-      toast.success('Natanggal na.');
-    } catch { toast.error('Hindi natanggal.'); }
+      toast.success(t('recurring.deleted'));
+    } catch { toast.error(t('recurring.deleteFailed')); }
   };
 
   const handleMarkPaid = async (r) => {
@@ -98,7 +100,7 @@ export default function RecurringBills() {
         category: r.category,
         description: r.description || '',
         date: Timestamp.fromDate(new Date()),
-        note: 'Mula sa paulit-ulit na bayarin',
+        note: t('recurring.fromRecurring'),
       };
       const ref = await addTransaction(user.uid, tx);
       addTransactionLocal({ id: ref.id, userId: user.uid, ...tx, createdAt: Timestamp.now() });
@@ -107,9 +109,9 @@ export default function RecurringBills() {
       await updateRecurringTransaction(r.id, { nextDueDate: nextDue });
       updateRecurringLocal(r.id, { nextDueDate: nextDue });
 
-      toast.success(r.type === 'income' ? 'Naitala ang kita!' : 'Nabayaran!');
+      toast.success(r.type === 'income' ? t('recurring.incomeRecorded') : t('recurring.paid'));
     } catch {
-      toast.error('Hindi na-record. Subukan ulit.');
+      toast.error(t('recurring.recordFailed'));
     } finally {
       setMarkingPaid(null);
     }
@@ -123,10 +125,10 @@ export default function RecurringBills() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <HiBellAlert className="w-4 h-4 text-pw-amber" />
-              <p className="text-sm font-semibold text-white">Paparating na Bayarin</p>
+              <p className="text-sm font-semibold text-white">{t('recurring.upcomingBills')}</p>
             </div>
             <button onClick={() => setShowManage(true)} className="text-xs text-pw-blue-light font-medium">
-              Pamahalaan
+              {t('recurring.manage')}
             </button>
           </div>
           <div className="space-y-2">
@@ -149,7 +151,7 @@ export default function RecurringBills() {
                     {markingPaid === r.id
                       ? <span className="w-3 h-3 rounded-full border-2 border-pw-muted border-t-transparent animate-spin" />
                       : <HiCheckCircle className="w-3.5 h-3.5" />}
-                    Bayad na
+                    {t('recurring.paidButton')}
                   </button>
                 </div>
               );
@@ -162,13 +164,13 @@ export default function RecurringBills() {
       {dueOrOverdue.length === 0 && active.length > 0 && (
         <button onClick={() => setShowManage(true)}
           className="flex items-center gap-2 text-xs text-pw-muted hover:text-white transition-colors">
-          <HiArrowPath className="w-3.5 h-3.5" /> Pamahalaan ang paulit-ulit na bayarin ({active.length})
+          <HiArrowPath className="w-3.5 h-3.5" /> {t('recurring.manageWithCount', { count: active.length })}
         </button>
       )}
       {active.length === 0 && (
         <button onClick={() => setShowManage(true)}
           className="flex items-center gap-2 text-xs text-pw-muted hover:text-white transition-colors">
-          <HiArrowPath className="w-3.5 h-3.5" /> Mag-set up ng paulit-ulit na bayarin
+          <HiArrowPath className="w-3.5 h-3.5" /> {t('recurring.setUp')}
         </button>
       )}
 
@@ -188,7 +190,7 @@ export default function RecurringBills() {
                 style={{ background: 'rgba(10,18,35,0.98)', backdropFilter: 'blur(28px)', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none', maxHeight: '90dvh' }}>
 
                 <div className="flex items-center justify-between mb-5">
-                  <h2 className="font-display text-xl font-bold text-white">Paulit-ulit na Bayarin</h2>
+                  <h2 className="font-display text-xl font-bold text-white">{t('recurring.title')}</h2>
                   <button onClick={() => { setShowManage(false); setShowAddForm(false); }}
                     className="w-8 h-8 rounded-full flex items-center justify-center text-pw-muted hover:text-white"
                     style={{ background: 'rgba(255,255,255,0.05)' }}>
@@ -199,7 +201,7 @@ export default function RecurringBills() {
                 {!showAddForm ? (
                   <>
                     {active.length === 0 ? (
-                      <p className="text-pw-muted text-sm text-center py-6">Wala pang naitalang paulit-ulit na bayarin.</p>
+                      <p className="text-pw-muted text-sm text-center py-6">{t('recurring.noneYet')}</p>
                     ) : (
                       <div className="space-y-2 mb-4">
                         {[...active].sort((a, b) => a.nextDueDate.localeCompare(b.nextDueDate)).map(r => {
@@ -212,7 +214,7 @@ export default function RecurringBills() {
                               <div className="flex-1 min-w-0">
                                 <p className="text-white text-sm font-medium truncate">{r.description || cat.label}</p>
                                 <p className="text-pw-muted text-xs mt-0.5">
-                                  {FREQUENCY_LABELS[r.frequency]} · {formatPeso(r.amount, 0)} · {getDueLabel(r.nextDueDate)}
+                                  {getFrequencyLabel(r.frequency)} · {formatPeso(r.amount, 0)} · {getDueLabel(r.nextDueDate)}
                                 </p>
                               </div>
                               <button onClick={() => handleDelete(r.id)}
@@ -225,15 +227,15 @@ export default function RecurringBills() {
                       </div>
                     )}
                     <button onClick={() => setShowAddForm(true)} className="btn-primary w-full">
-                      <HiPlus className="w-4 h-4" /> Magdagdag ng Bagong Bayarin
+                      <HiPlus className="w-4 h-4" /> {t('recurring.addNew')}
                     </button>
                   </>
                 ) : (
                   <form onSubmit={handleSubmit(onAddSubmit)} className="space-y-4 pb-2">
                     <div className="flex gap-2">
                       {[
-                        { type: 'expense', label: 'Gastos', color: '#F43F5E', bg: 'rgba(244,63,94,0.12)' },
-                        { type: 'income',  label: 'Kita',   color: '#10B981', bg: 'rgba(16,185,129,0.12)' },
+                        { type: 'expense', label: t('common.expense'), color: '#F43F5E', bg: 'rgba(244,63,94,0.12)' },
+                        { type: 'income',  label: t('common.income'),  color: '#10B981', bg: 'rgba(16,185,129,0.12)' },
                       ].map(({ type, label, color, bg }) => (
                         <button key={type} type="button" onClick={() => setTxType(type)}
                           className="flex-1 py-2.5 rounded-2xl font-semibold text-sm transition-all"
@@ -248,31 +250,32 @@ export default function RecurringBills() {
                     </div>
 
                     <div>
-                      <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">Halaga</label>
+                      <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">{t('common.amount')}</label>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-pw-gold font-bold text-lg">₱</span>
                         <input type="number" placeholder="0.00" step="0.01" min="0" inputMode="decimal"
                           className="input-glass pl-9 text-lg font-bold"
-                          {...register('amount', { required: 'Maglagay ng halaga', min: { value: 0.01, message: 'Dapat mas malaki sa 0' } })} />
+                          {...register('amount', { required: t('transactions.amountRequired'), min: { value: 0.01, message: t('transactions.amountPositive') } })} />
                       </div>
                       {errors.amount && <p className="text-pw-rose text-xs mt-1.5">{errors.amount.message}</p>}
                     </div>
 
                     <div>
-                      <label className="block text-xs text-pw-muted mb-2 font-semibold uppercase tracking-wide">Kategorya</label>
+                      <label className="block text-xs text-pw-muted mb-2 font-semibold uppercase tracking-wide">{t('common.category')}</label>
                       <div className="grid grid-cols-4 gap-2">
                         {categories.map(cat => {
                           const isSelected = selectedCat === cat.id;
+                          const catInfo = getCategoryInfo(cat.id, txType);
                           return (
                             <label key={cat.id} className="cursor-pointer">
                               <input type="radio" value={cat.id} className="sr-only"
-                                {...register('category', { required: 'Pumili ng kategorya' })} />
+                                {...register('category', { required: t('transactions.categoryRequired') })} />
                               <div className={`flex flex-col items-center gap-1.5 p-2.5 rounded-2xl border transition-all ${
                                 isSelected ? 'border-pw-gold/45 bg-pw-gold-dim' : 'border-white/[0.07] bg-white/[0.03]'
                               }`}>
                                 <CategoryIcon id={cat.id} size={16} color={isSelected ? '#F5B731' : cat.color} />
                                 <span className={`text-[9px] font-semibold text-center leading-tight ${isSelected ? 'text-pw-gold' : 'text-pw-muted'}`}>
-                                  {cat.label}
+                                  {catInfo.label}
                                 </span>
                               </div>
                             </label>
@@ -284,31 +287,31 @@ export default function RecurringBills() {
 
                     <div>
                       <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">
-                        Paglalarawan <span className="normal-case text-pw-muted/60">(opsyonal)</span>
+                        {t('transactions.descriptionOptional')} <span className="normal-case text-pw-muted/60">({t('common.optional')})</span>
                       </label>
-                      <input type="text" placeholder="hal. Kuryente, Netflix, Sweldo"
+                      <input type="text" placeholder={t('recurring.descriptionPlaceholder')}
                         className="input-glass" {...register('description')} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">Dalas</label>
+                        <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">{t('recurring.frequency')}</label>
                         <select className="input-glass text-sm" {...register('frequency')}>
-                          <option value="weekly">Lingguhan</option>
-                          <option value="monthly">Buwanan</option>
-                          <option value="yearly">Taunan</option>
+                          <option value="weekly">{t('recurring.weekly')}</option>
+                          <option value="monthly">{t('recurring.monthly')}</option>
+                          <option value="yearly">{t('recurring.yearly')}</option>
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">Unang Deadline</label>
+                        <label className="block text-xs text-pw-muted mb-1.5 font-semibold uppercase tracking-wide">{t('recurring.firstDeadline')}</label>
                         <input type="date" className="input-glass"
-                          {...register('nextDueDate', { required: 'Kinakailangan' })} />
+                          {...register('nextDueDate', { required: t('recurring.dateRequired') })} />
                       </div>
                     </div>
 
                     <div className="flex gap-3 pt-1">
-                      <button type="button" onClick={() => setShowAddForm(false)} className="btn-secondary flex-1">Bumalik</button>
-                      <button type="submit" className="btn-primary flex-1">I-save</button>
+                      <button type="button" onClick={() => setShowAddForm(false)} className="btn-secondary flex-1">{t('recurring.back')}</button>
+                      <button type="submit" className="btn-primary flex-1">{t('recurring.save')}</button>
                     </div>
                   </form>
                 )}
