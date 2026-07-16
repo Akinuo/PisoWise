@@ -613,3 +613,13 @@ export const SAVINGS_CHALLENGES = [
     note: 'Mag-ipon ng ₱20 bawat araw (halaga ng kape o meryenda) sa loob ng isang taon.',
   },
 ];
+
+/**
+ * Merges a challenge's base data (emoji/days/targetAmount — same regardless
+ * of language) with its translated name/description/note.
+ */
+export const getChallengeInfo = (challenge) => {
+  const language = useStore.getState().language;
+  const dict = TRANSLATIONS[language]?.challenges?.[challenge.id] || TRANSLATIONS.fil.challenges[challenge.id];
+  return { ...challenge, ...dict };
+};

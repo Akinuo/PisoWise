@@ -5,10 +5,11 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import useStore from '../store/useStore';
 import { shallow } from 'zustand/shallow';
+import { useTranslation } from '../i18n/useTranslation';
 import { addSavingsGoal, getSavingsGoals, updateSavingsGoal, deleteSavingsGoal, getTransactions } from '../services/firebase';
 import { generateSavingsStrategy } from '../services/groq';
 import { formatPeso, formatDate, getPercent, parsePesoInput } from '../utils/formatters';
-import { SAVINGS_CHALLENGES } from '../utils/constants';
+import { SAVINGS_CHALLENGES, getChallengeInfo } from '../utils/constants';
 import { Timestamp } from '../services/firebase';
 import toast from 'react-hot-toast';
 import {
@@ -27,6 +28,7 @@ const GOAL_COLORS = [
 
 export default function Savings() {
   const { user, profile } = useAuth();
+  const { t } = useTranslation();
   const { savings, setSavings, savingsLoaded, addSavingLocal, updateSavingLocal, removeSavingLocal,
           transactions, setTransactions, transactionsLoaded } = useStore((s) => ({
     savings: s.savings, setSavings: s.setSavings, savingsLoaded: s.savingsLoaded,
@@ -80,14 +82,15 @@ export default function Savings() {
   };
 
   const startChallenge = (challenge) => {
+    const info = getChallengeInfo(challenge);
     setEditGoal(null);
     reset();
-    setValue('goalName', challenge.name);
-    setValue('targetAmount', String(challenge.targetAmount));
+    setValue('goalName', info.name);
+    setValue('targetAmount', String(info.targetAmount));
     setValue('currentAmount', '0');
-    const deadline = new Date(); deadline.setDate(deadline.getDate() + challenge.days);
+    const deadline = new Date(); deadline.setDate(deadline.getDate() + info.days);
     setValue('deadline', deadline.toISOString().slice(0, 10));
-    setValue('note', challenge.note);
+    setValue('note', info.note);
     setSelectedColor('gold');
     setShowChallenges(false);
     setShowModal(true);
@@ -97,7 +100,7 @@ export default function Savings() {
     if (!user) return;
     const target  = parsePesoInput(data.targetAmount);
     const current = parsePesoInput(data.currentAmount || '0');
-    if (target <= 0) { toast.error('Maglagay ng target na halaga.'); return; }
+    if (target <= 0) { toast.error(t('savings.targetAmountRequired')); return; }
 
     try {
       const payload = {
@@ -112,23 +115,23 @@ export default function Savings() {
       if (editGoal) {
         await updateSavingsGoal(editGoal.id, payload);
         updateSavingLocal(editGoal.id, payload);
-        toast.success('Goal na-update!');
+        toast.success(t('savings.goalUpdated'));
       } else {
         const ref = await addSavingsGoal(user.uid, payload);
         addSavingLocal({ id: ref.id, userId: user.uid, ...payload, createdAt: Timestamp.now() });
-        toast.success('Savings goal naidagdag! 🎯');
+        toast.success(t('savings.goalAdded'));
       }
       setShowModal(false); reset(); setEditGoal(null);
-    } catch (e) { toast.error('Hindi na-save. Subukan ulit.'); }
+    } catch (e) { toast.error(t('savings.saveFailed')); }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Tanggalin ang savings goal na ito?')) return;
+    if (!confirm(t('savings.confirmDelete'))) return;
     try {
       await deleteSavingsGoal(id);
       removeSavingLocal(id);
-      toast.success('Goal natanggal.');
-    } catch { toast.error('Hindi natanggal.'); }
+      toast.success(t('savings.goalDeleted'));
+    } catch { toast.error(t('savings.deleteFailed')); }
   };
 
   const handleAddFunds = async (goal, amount) => {
@@ -138,9 +141,9 @@ export default function Savings() {
     try {
       await updateSavingsGoal(goal.id, { currentAmount: newCurrent });
       updateSavingLocal(goal.id, { currentAmount: newCurrent });
-      if (newCurrent >= goal.targetAmount) toast.success('🎉 Goal naabot na! Congratulations!');
-      else toast.success(`₱${formatPeso(addAmt, 0)} naidagdag sa ${goal.goalName}!`);
-    } catch { toast.error('Hindi na-update.'); }
+      if (newCurrent >= goal.targetAmount) toast.success(t('savings.goalReached'));
+      else toast.success(t('savings.fundsAdded', { amount: formatPeso(addAmt, 0), goal: goal.goalName }));
+    } catch { toast.error(t('savings.updateFailed')); }
   };
 
   const generateStrategy = async (goal) => {
@@ -172,19 +175,19 @@ export default function Savings() {
           {/* Header */}
           <div className="flex items-center justify-between pt-2">
             <div>
-              <h1 className="font-display text-2xl font-bold text-white">Savings Goals</h1>
+              <h1 className="font-display text-2xl font-bold text-white">{t('savings.title')}</h1>
               <p className="text-pw-muted text-sm mt-0.5">
-                Kabuuang Ipon: <span className="text-pw-emerald font-bold">{formatPeso(totalSavings, 0)}</span>
+                {t('savings.totalSavings')}: <span className="text-pw-emerald font-bold">{formatPeso(totalSavings, 0)}</span>
               </p>
             </div>
             <div className="flex gap-2">
               <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowChallenges(true)}
                 className="btn-secondary py-2.5 px-3 text-xs gap-1.5">
-                <HiTrophy className="w-3.5 h-3.5 text-pw-gold" /> Challenge
+                <HiTrophy className="w-3.5 h-3.5 text-pw-gold" /> {t('savings.challenge')}
               </motion.button>
               <motion.button whileTap={{ scale: 0.9 }} onClick={() => openModal()}
                 className="btn-primary py-2.5 px-4">
-                <HiPlus className="w-4 h-4" /> Dagdag
+                <HiPlus className="w-4 h-4" /> {t('savings.add')}
               </motion.button>
             </div>
           </div>
@@ -193,9 +196,9 @@ export default function Savings() {
           {savings.length === 0 ? (
             <div className="glass p-10 text-center">
               <HiBanknotes className="w-10 h-10 text-pw-muted mx-auto mb-3" />
-              <p className="text-white font-semibold mb-1">Walang savings goals pa</p>
-              <p className="text-pw-muted text-sm mb-4">Mag-set ng goal para magsimulang mag-ipon!</p>
-              <button onClick={() => openModal()} className="btn-primary px-6">Gumawa ng Goal</button>
+              <p className="text-white font-semibold mb-1">{t('savings.noGoalsTitle')}</p>
+              <p className="text-pw-muted text-sm mb-4">{t('savings.noGoalsBody')}</p>
+              <button onClick={() => openModal()} className="btn-primary px-6">{t('savings.createGoal')}</button>
             </div>
           ) : (
             <div className="space-y-3">
@@ -214,11 +217,11 @@ export default function Savings() {
                           <div>
                             <div className="flex items-center gap-2">
                               <h3 className="text-white font-semibold">{goal.goalName}</h3>
-                              {done && <span className="label-emerald text-[10px] px-2 py-0.5">✅ Done!</span>}
+                              {done && <span className="label-emerald text-[10px] px-2 py-0.5">{t('savings.done')}</span>}
                             </div>
                             {goal.deadline && (
                               <p className={`text-xs mt-0.5 ${days !== null && days < 30 ? 'text-pw-amber' : 'text-pw-muted'}`}>
-                                {days !== null && days > 0 ? `${days} araw na lang` : days === 0 ? 'Ngayon!' : 'Expired'} · {formatDate(goal.deadline, 'short')}
+                                {days !== null && days > 0 ? t('savings.daysLeft', { days }) : days === 0 ? t('savings.dueNow') : t('savings.expired')} · {formatDate(goal.deadline, 'short')}
                               </p>
                             )}
                           </div>
@@ -256,7 +259,7 @@ export default function Savings() {
                             <QuickAddFunds onAdd={(amt) => handleAddFunds(goal, amt)} />
                             <button onClick={() => generateStrategy(goal)}
                               className="btn-secondary py-2 px-3 text-xs gap-1.5 flex-shrink-0">
-                              <HiSparkles className="w-3.5 h-3.5 text-pw-gold" /> AI Tips
+                              <HiSparkles className="w-3.5 h-3.5 text-pw-gold" /> {t('savings.aiTips')}
                             </button>
                           </div>
                         )}
@@ -276,7 +279,7 @@ export default function Savings() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <HiSparkles className="w-4 h-4 text-pw-gold" />
-                      <p className="text-sm font-semibold text-pw-gold">AI Strategy — {aiGoal.goalName}</p>
+                      <p className="text-sm font-semibold text-pw-gold">{t('savings.aiStrategy')} — {aiGoal.goalName}</p>
                     </div>
                     <div className="flex gap-1">
                       <button onClick={() => generateStrategy(aiGoal)} disabled={genLoading}
@@ -317,27 +320,27 @@ export default function Savings() {
               style={{ background: 'rgba(12,22,40,0.98)', backdropFilter: 'blur(28px)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-5" />
               <h2 className="font-display text-xl font-bold text-white mb-5">
-                {editGoal ? 'I-edit ang Goal' : 'Bagong Savings Goal'}
+                {editGoal ? t('savings.editGoal') : t('savings.newGoal')}
               </h2>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div>
-                  <label className="block text-xs text-pw-muted mb-1.5">Pangalan ng Goal</label>
-                  <input type="text" placeholder="hal. Pondo para sa bagong laptop, Emergency Fund..."
+                  <label className="block text-xs text-pw-muted mb-1.5">{t('savings.goalName')}</label>
+                  <input type="text" placeholder={t('savings.goalNamePlaceholder')}
                     className="input-glass"
-                    {...register('goalName', { required: 'Maglagay ng pangalan ng goal' })} />
+                    {...register('goalName', { required: t('savings.goalNameRequired') })} />
                   {errors.goalName && <p className="text-pw-rose text-xs mt-1">{errors.goalName.message}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-pw-muted mb-1.5">Target na Halaga</label>
+                    <label className="block text-xs text-pw-muted mb-1.5">{t('savings.targetAmount')}</label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-pw-gold font-bold text-sm">₱</span>
                       <input type="number" placeholder="10000" min="1" className="input-glass pl-7"
-                        {...register('targetAmount', { required: 'Maglagay ng target' })} />
+                        {...register('targetAmount', { required: t('savings.targetRequired') })} />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-pw-muted mb-1.5">Kasalukuyang Ipon</label>
+                    <label className="block text-xs text-pw-muted mb-1.5">{t('savings.currentAmount')}</label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-pw-gold font-bold text-sm">₱</span>
                       <input type="number" placeholder="0" min="0" className="input-glass pl-7"
@@ -346,12 +349,12 @@ export default function Savings() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-pw-muted mb-1.5">Target na Petsa (opsyonal)</label>
+                  <label className="block text-xs text-pw-muted mb-1.5">{t('savings.targetDate')} ({t('common.optional')})</label>
                   <input type="date" className="input-glass" min={new Date().toISOString().slice(0, 10)}
                     {...register('deadline')} />
                 </div>
                 <div>
-                  <label className="block text-xs text-pw-muted mb-2">Kulay</label>
+                  <label className="block text-xs text-pw-muted mb-2">{t('savings.color')}</label>
                   <div className="flex gap-2">
                     {GOAL_COLORS.map(c => (
                       <button key={c.id} type="button" onClick={() => setSelectedColor(c.id)}
@@ -361,14 +364,14 @@ export default function Savings() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-pw-muted mb-1.5">Note (opsyonal)</label>
-                  <textarea rows={2} placeholder="hal. Para sa bakasyon ng pamilya sa Boracay..." className="input-glass resize-none text-sm"
+                  <label className="block text-xs text-pw-muted mb-1.5">{t('savings.note')} ({t('common.optional')})</label>
+                  <textarea rows={2} placeholder={t('savings.notePlaceholder')} className="input-glass resize-none text-sm"
                     {...register('note')} />
                 </div>
                 <div className="flex gap-3">
-                  <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1">Kanselahin</button>
+                  <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1">{t('savings.cancel')}</button>
                   <button type="submit" className="btn-primary flex-1">
-                    {editGoal ? 'I-update' : 'Gumawa ng Goal'}
+                    {editGoal ? t('savings.update') : t('savings.createGoalBtn')}
                   </button>
                 </div>
               </form>
@@ -392,31 +395,34 @@ export default function Savings() {
               <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-5" />
               <div className="flex items-center gap-2 mb-1">
                 <HiTrophy className="w-5 h-5 text-pw-gold" />
-                <h2 className="font-display text-xl font-bold text-white">Mga Savings Challenge</h2>
+                <h2 className="font-display text-xl font-bold text-white">{t('savings.challengesTitle')}</h2>
               </div>
-              <p className="text-pw-muted text-sm mb-5">Pumili ng challenge para may malinaw na plano sa pag-iipon.</p>
+              <p className="text-pw-muted text-sm mb-5">{t('savings.challengesDesc')}</p>
 
               <div className="space-y-2.5">
-                {SAVINGS_CHALLENGES.map(c => (
-                  <button key={c.id} onClick={() => startChallenge(c)}
-                    className="w-full text-left glass-sm p-4 flex items-center gap-3.5 hover:bg-white/[0.06] transition-all cursor-pointer">
-                    <div className="w-11 h-11 rounded-2xl bg-pw-gold-dim flex items-center justify-center text-xl flex-shrink-0">
-                      {c.emoji}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-semibold">{c.name}</p>
-                      <p className="text-pw-muted text-xs mt-0.5 leading-relaxed">{c.description}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-pw-gold text-sm font-bold">{formatPeso(c.targetAmount, 0)}</p>
-                      <p className="text-pw-muted text-[10px]">{c.days} araw</p>
-                    </div>
-                  </button>
-                ))}
+                {SAVINGS_CHALLENGES.map(c => {
+                  const info = getChallengeInfo(c);
+                  return (
+                    <button key={c.id} onClick={() => startChallenge(c)}
+                      className="w-full text-left glass-sm p-4 flex items-center gap-3.5 hover:bg-white/[0.06] transition-all cursor-pointer">
+                      <div className="w-11 h-11 rounded-2xl bg-pw-gold-dim flex items-center justify-center text-xl flex-shrink-0">
+                        {c.emoji}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-semibold">{info.name}</p>
+                        <p className="text-pw-muted text-xs mt-0.5 leading-relaxed">{info.description}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-pw-gold text-sm font-bold">{formatPeso(c.targetAmount, 0)}</p>
+                        <p className="text-pw-muted text-[10px]">{c.days} {t('savings.days')}</p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
 
               <button onClick={() => setShowChallenges(false)} className="btn-secondary w-full mt-5">
-                Bumalik
+                {t('savings.back')}
               </button>
             </motion.div>
           </>
@@ -427,6 +433,7 @@ export default function Savings() {
 }
 
 function QuickAddFunds({ onAdd }) {
+  const { t } = useTranslation();
   const [val, setVal] = useState('');
   const [show, setShow] = useState(false);
   return show ? (
@@ -434,7 +441,7 @@ function QuickAddFunds({ onAdd }) {
       <div className="relative flex-1">
         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-pw-gold text-xs font-bold">₱</span>
         <input type="number" value={val} onChange={e => setVal(e.target.value)}
-          placeholder="Halaga" min="0" className="input-glass py-1.5 pl-6 text-sm" inputMode="numeric" autoFocus />
+          placeholder={t('savings.amount')} min="0" className="input-glass py-1.5 pl-6 text-sm" inputMode="numeric" autoFocus />
       </div>
       <button onClick={() => { onAdd(val); setVal(''); setShow(false); }}
         className="btn-primary py-1.5 px-3 text-xs">OK</button>
@@ -445,7 +452,7 @@ function QuickAddFunds({ onAdd }) {
     </div>
   ) : (
     <button onClick={() => setShow(true)} className="btn-secondary py-2 px-3 text-xs gap-1.5 flex-1">
-      <HiPlus className="w-3.5 h-3.5" /> Mag-ipon
+      <HiPlus className="w-3.5 h-3.5" /> {t('savings.save')}
     </button>
   );
 }
